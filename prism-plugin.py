@@ -24,7 +24,9 @@ def createprism(plugin, label, members):
         # maybe try to find a route first, and if no route can be found then
         # fail because that destination will not be payable
         plugin.log(f"Members: {members}")
-        lrpc = LightningRpc(os.getenv('RPC_PATH'))
+
+        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
+        lrpc = LightningRpc(path)
         # returns object containing bolt12 offer
         offer = lrpc.offer("any", label)
         offer_id = offer["offer_id"]
@@ -52,7 +54,8 @@ def createprism(plugin, label, members):
 @plugin.method("listprisms")
 def listprisms(plugin):
     try:
-        lrpc = LightningRpc(os.getenv('RPC_PATH'))
+        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
+        lrpc = LightningRpc(path)
 
         offers = lrpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
