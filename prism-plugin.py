@@ -72,7 +72,7 @@ def listprisms(plugin):
         prism_data_json = list(
             map(lambda prism: json.loads(prism), prism_data_string))
 
-        return prism_data_json
+        return {"prisms": prism_data_json}
     except RpcError as e:
         plugin.log(e)
         return e
