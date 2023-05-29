@@ -18,15 +18,13 @@ def init(options, configuration, plugin, **kwargs):
 @plugin.method("createprism")
 def createprism(plugin, label, members):
     try:
-        # check members is of form [{"name": "alias", "destination": "pubkey", "split": number}]
-        # todo: validate destination is a valid pubkey.
         validate_members(members)
-        # maybe try to find a route first, and if no route can be found then
-        # fail because that destination will not be payable
+
         plugin.log(f"Members: {members}")
 
         path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
         lrpc = LightningRpc(path)
+
         # returns object containing bolt12 offer
         offer = lrpc.offer("any", label)
         offer_id = offer["offer_id"]
@@ -35,11 +33,6 @@ def createprism(plugin, label, members):
         datastore = lrpc.listdatastore(offer_id)["datastore"]
         if any(offer_id in d['key'] for d in datastore):
             raise Exception('Existing offer already exists')
-
-        # todo: requesting to add an offer with exact same params will not create a new offer
-        # that means we get the same offer_id, and then trying to add to the datastore will not work
-        # because that key already exists
-        # We need to check if an offer already exists with the same params.
 
         # add the prism info to datastore with the offer_id as the key
         lrpc.datastore(offer["offer_id"],
@@ -84,13 +77,7 @@ plugin.add_option('destination', 'destination', 'default_destination')
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
     try:
-        # label is of form offer_id-invreq_payer_id-0, but I do not if know thats always the case
         offer_id = invoice_payment["label"].split("-")[0]
-
-        # check offers with listoffers and confirm there is an offer with offer_id
-        # if not that means our node received an invoice unrelated to the prism
-        # todo: end execution if no existing bolt12 offers
-        #   if there is an existing offer that check that it exists in our datastore
 
         plugin.log("Received invoice_payment event for label {label}, preimage {preimage},"
                    " and split of {msat}".format(**invoice_payment))
@@ -98,25 +85,15 @@ def on_payment(plugin, invoice_payment, **kwargs):
         path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
         lrpc = LightningRpc(path)
 
-        # check datastore
-        #   todo: check if data store is empty. When you ask for offer_id,
-        #       it should be empty if no offers exist
-        # should return one item matching the offer_id,
-        #   todo: check that ^^
         datastore = lrpc.listdatastore(offer_id)
         data_string = datastore['datastore'][0]['string'].replace('\\"', '"')
         data_json = json.loads(data_string)
 
         # returns list of members or empty list
         members = data_json.get("members", [])
-        # todo: check to make sure members has all expected values
-
-        plugin.log("Members: {}".format(members))
 
         # determine how many satoshis to send each member
         total_split = sum(map(lambda member: member['split'], members))
-
-        plugin.log("Invoice payment: {}".format(invoice_payment['msat']))
 
         for member in members:
             # iterate over each prism member and send them their split
@@ -131,9 +108,6 @@ def on_payment(plugin, invoice_payment, **kwargs):
             #   check for confirmation,
             #   add to an object to return payment success info
 
-        # from the docs: "Notifications are not confirmable by definition, since they do not have a Response object to be returned. As such, the Client would not be aware of any errors (like e.g. “Invalid params”,”Internal error”)." https://lightning.readthedocs.io/PLUGINS.html#event-notifications
-        # we will want to do some error handling if payments don't go through, so maybe we use a hook which can return? https://lightning.readthedocs.io/PLUGINS.html#hooks
-        return invoice_payment
     except RpcError as e:
         plugin.log(e)
         return e
