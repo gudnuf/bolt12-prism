@@ -95,10 +95,8 @@ def on_payment(plugin, invoice_payment, **kwargs):
         plugin.log("Received invoice_payment event for label {label}, preimage {preimage},"
                    " and split of {msat}".format(**invoice_payment))
 
-        # we will check if bolt12 we stored earlier in the prism call is in the label of the bolt11 invoice
-        # at that point keysend pubkeys in the members
-        # todo: set this as an env var
-        lrpc = LightningRpc(os.getenv('RPC_PATH'))
+        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
+        lrpc = LightningRpc(path)
 
         # check datastore
         #   todo: check if data store is empty. When you ask for offer_id,
