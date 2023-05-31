@@ -8,6 +8,8 @@ from pyln.client import Plugin, RpcError, LightningRpc, Millisatoshi
 plugin = Plugin()
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
+bolt12Regex = re.compile(
+    r'^ln([a-zA-Z0-9]{1,90})[0-9]+[munp]?[a-zA-Z0-9]+[0-9]+[munp]?[a-zA-Z0-9]*$')
 
 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
@@ -101,12 +103,14 @@ def on_payment(plugin, invoice_payment, **kwargs):
             deserved_msats = floor((member['split'] / total_split) *
                                    int(invoice_payment['msat'][:-4]))
 
-            lrpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
-                deserved_msats))
-            # todo:
-            #   check for failed payments,
-            #   check for confirmation,
-            #   add to an object to return payment success info
+            if member["type"] == "keysend":
+                lrpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
+                    deserved_msats))
+            else:
+                invoice_obj = lrpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
+                    deserved_msats))
+                plugin.log("Invoice: {}".format(invoice_obj["invoice"]))
+                lrpc.pay(bolt11=invoice_obj["invoice"])
 
     except RpcError as e:
         plugin.log(e)
@@ -135,18 +139,34 @@ def validate_members(members):
         if not isinstance(member["destination"], str):
             raise ValueError("Member 'destination' must be a string")
 
-        valid_pubkey = member["destination"] if pubkeyRegex.match(
-            member["destination"]) else None
-        if valid_pubkey is None:
-            raise Exception(
-                "Destination must be a valid lightning node pubkey")
-
         if not isinstance(member["split"], int):
             raise ValueError("Member 'split' must be an integer")
 
         if member["split"] < 1 or member["split"] > 1000:
             raise ValueError(
                 "Member 'split' must be an integer between 1 and 1000")
+
+        types = ["keysend", "bolt12"]
+        if "type" in member and not member["type"] in types:
+            raise ValueError(
+                "Invalid payment type. Supported types are 'bolt12' and 'keysend'. Default is 'bolt12'.")
+
+        # make sure destination is valid bolt12 or node pubkey
+        valid_destination = None
+
+        if "type" not in member or member["type"] == "bolt12":
+            plugin.log("bolt12 destination")
+            valid_destination = member["destination"] if bolt12Regex.match(
+                member["destination"]) else None
+
+        if "type" in member and member["type"] == "keysend":
+            plugin.log("keysend destination")
+            valid_destination = member["destination"] if pubkeyRegex.match(
+                member["destination"]) else None
+
+        if valid_destination is None:
+            raise Exception(
+                "Destination must be a valid lightning node pubkey or bolt12 offer")
 
 
 plugin.run()  # Run our plugin
