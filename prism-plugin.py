@@ -97,20 +97,41 @@ def on_payment(plugin, invoice_payment, **kwargs):
         # determine how many satoshis to send each member
         total_split = sum(map(lambda member: member['split'], members))
 
+        payment_results = []
         for member in members:
             # iterate over each prism member and send them their split
             # msat comes as "5000msat"
             deserved_msats = floor((member['split'] / total_split) *
                                    int(invoice_payment['msat'][:-4]))
 
-            if member["type"] == "keysend":
-                lrpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
-                    deserved_msats))
+            if member.get("type") == "keysend":
+                try:
+                    payment = lrpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
+                        deserved_msats))
+
+                    result = create_payment_result(member, payment)
+
+                    payment_results.append(result)
+
+                except RpcError as e:
+                    result = create_payment_result(member, {}, e)
+                    payment_results.append(result)
+
             else:
-                invoice_obj = lrpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
-                    deserved_msats))
-                plugin.log("Invoice: {}".format(invoice_obj["invoice"]))
-                lrpc.pay(bolt11=invoice_obj["invoice"])
+                try:
+                    invoice_obj = lrpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
+                        deserved_msats))
+
+                    payment = lrpc.pay(bolt11=invoice_obj["invoice"])
+
+                    result = create_payment_result(member, payment)
+                    payment_results.append(result)
+
+                except RpcError as e:
+                    result = create_payment_result(member, {}, e)
+                    payment_results.append(result)
+
+        plugin.log(f"{payment_results}")
 
     except RpcError as e:
         plugin.log(e)
@@ -167,6 +188,30 @@ def validate_members(members):
         if valid_destination is None:
             raise Exception(
                 "Destination must be a valid lightning node pubkey or bolt12 offer")
+
+
+def create_payment_result(member, payment, error=None):
+    if error:
+        result = {
+            "destination": member["destination"],
+            "type": member.get("type", "bolt12"),
+            "amount_msat": "",
+            "amount_sent_msat": "",
+            "status": "error",
+            "created_at": "",
+            "error_message": error,
+        }
+    else:
+        result = {
+            "destination": member["destination"],
+            "type": member.get("type", "bolt12"),
+            "amount_msat": payment["amount_msat"],
+            "amount_sent_msat": payment["amount_sent_msat"],
+            "status": payment["status"],
+            "created_at": payment["created_at"],
+            "error_message": ""
+        }
+    return result
 
 
 plugin.run()  # Run our plugin
