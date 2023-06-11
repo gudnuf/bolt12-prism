@@ -81,9 +81,6 @@ def on_payment(plugin, invoice_payment, **kwargs):
     try:
         offer_id = invoice_payment["label"].split("-")[0]
 
-        plugin.log("Received invoice_payment event for label {label}, preimage {preimage},"
-                   " and split of {msat}".format(**invoice_payment))
-
         path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
         lrpc = LightningRpc(path)
 
