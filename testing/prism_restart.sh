@@ -1,10 +1,11 @@
 #!/bin/bash
 
-set -u
+set -x
+
 
 echo "Stopping prism"
-lightning-cli --lightning-dir=/tmp/l2-regtest plugin stop prism-plugin.py > /dev/null 2>&1
+lightning-cli --lightning-dir=/tmp/l2-regtest plugin stop prism-plugin.py
 
 echo "Starting prism"
-lightning-cli --lightning-dir=/tmp/l2-regtest plugin start ~/code/bolt12-prism/prism-plugin.py  > /dev/null
+lightning-cli --lightning-dir=/tmp/l2-regtest plugin start /home/daim/code/bolt12-prism/prism-plugin.py
 
