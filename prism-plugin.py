@@ -71,6 +71,27 @@ def listprisms(plugin):
     except RpcError as e:
         plugin.log(e)
         return e
+    
+@plugin.method("deleteprism")
+def deleteprism(plugin, offer_id):
+    try:
+        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
+        lrpc = LightningRpc(path)
+
+        prisms = get_prism_json(lrpc)["prisms"]
+
+        if any(offer_id in d['offer_id'] for d in prisms):
+            lrpc.deldatastore(offer_id)
+            lrpc.disableoffer(offer_id)
+
+        else:
+            raise Exception(f'Offer {offer_id} not found')
+
+        return {"message":"Successfully removed prism and disabled the bolt12 offer"}
+
+    except RpcError as e:
+        plugin.log(e)
+        return e
 
 
 plugin.add_option('destination', 'destination', 'default_destination')
@@ -130,6 +151,29 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
         plugin.log(f"{payment_results}")
 
+    except RpcError as e:
+        plugin.log(e)
+        return e
+
+
+def get_prism_json(lrpc):
+    try:
+        offers = lrpc.listoffers()["offers"]
+        offer_ids = [offer["offer_id"] for offer in offers]
+
+        datastore = lrpc.listdatastore()["datastore"]
+
+        # extract all datastore entries with a key that matches our offer_ids
+        prisms = [i for i in datastore if any(
+            offer_id in i["key"] for offer_id in offer_ids)]
+
+        prism_data_string = list(
+            map(lambda prism: prism['string'].replace('\\"', '"'), prisms))
+
+        prism_data_json = list(
+            map(lambda prism: json.loads(prism), prism_data_string))
+
+        return {"prisms": prism_data_json}
     except RpcError as e:
         plugin.log(e)
         return e
