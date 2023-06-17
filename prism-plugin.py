@@ -83,11 +83,10 @@ def deleteprism(plugin, offer_id):
         if any(offer_id in d['offer_id'] for d in prisms):
             lrpc.deldatastore(offer_id)
             lrpc.disableoffer(offer_id)
-
         else:
-            raise Exception(f'Offer {offer_id} not found')
+            raise Exception(f'Offer "{offer_id}" not found')
 
-        return {"message":"Successfully removed prism and disabled the bolt12 offer"}
+        return "Successfully removed prism and disabled the bolt12 offer"
 
     except RpcError as e:
         plugin.log(e)
