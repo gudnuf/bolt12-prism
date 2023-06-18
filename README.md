@@ -1,8 +1,18 @@
-# ROYGBIV
+# BOLT 12 Prism Plugin
 
-A CLN plugin for creating and interacting with BOLT 12 native prisms.
+A CLN plugin for creating and interacting with BOLT 12 prisms.
 
-_BOLT 12 is currently experimental and you will need to enable `experimental-offers`_
+_BOLT 12 is currently experimental and you will need to add the *--experimental-offers* flag when starting lightningd`_
+
+## Background
+
+This started as the winning hackathon project at btc++ 2023 in Austin, Tx. 
+
+Some other projects that compliment this one are
+- [roygbiv.money](https://roygbiv.money) where you can experiment with prisms in regtest
+- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms
+- [roygbiv-stack](https://github.com/farscapian/roygbiv-stack) to deploy CLN nodes running prisms on any network
+- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend)
 
 ## Getting Started
 
@@ -28,21 +38,21 @@ You can either manually start the plugin or add it your startup command.
 
 ### Manually start the plugin
 
-lightning-cli plugin start /path/to/prism-plugin.py
+`lightning-cli plugin start /path/to/prism-plugin.py`
 
 ### Run on startup
 
-lightningd plugin=/path/to/prism-plugin.py
+`lightningd --experimental-offers --plugin=/path/to/prism-plugin.py`
 
 ## Using the plugin
 
 CLN exposes plugins as RPC methods
 
-There are currently three methods available for interacting with prisms: `createprism`, `listprisms`, and `deleteprism`\*
+There are currently three methods available for interacting with prisms: `createprism`, `listprisms`, and `deleteprism`
 
 ### createprism
 
-**createprism label members**
+`createprism label members`
 
 _label_ is a string to lable prisms and the corresponding offer
 
@@ -55,7 +65,6 @@ _members_ is an array of member objects with the following form:
   split: int,
   type: ?string
 }
-
 ```
 
 _name_: member's name
@@ -86,11 +95,11 @@ Returns the BOLT 12 offer:
 }
 ```
 
-_see /testing/create_prism.sh_
+_see testing/create_prism.sh_
 
 ### listprisms
 
-_listprisms_
+`listprisms`
 
 Returns array of prism metadata:
 
@@ -129,11 +138,11 @@ Returns array of prism metadata:
 
 When prisms are created, they get stored in the node's datastore with the offer id as the key.
 
-_see `datastore`, `listdatastore`, and `deldatastore` from the CLN docs._
+_see `datastore`, `listdatastore`, and `deldatastore` from the [CLN docs](https://lightning.readthedocs.io/)._
 
 ## Testing and Experimenting
 
-The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the `startup_regtest` script from the lightning repo.
+The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the lightning repo.
 
 ### roygbiv-stack
 
