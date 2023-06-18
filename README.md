@@ -2,7 +2,10 @@
 
 A CLN plugin for creating and interacting with BOLT 12 prisms.
 
-_BOLT 12 is currently experimental and you will need to add the *--experimental-offers* flag when starting lightningd`_
+![roygbiv](https://github.com/daGoodenough/bolt12-prism/assets/108303703/2c4ba75d-b0ab-4c3f-a5c4-2202716a04a0)
+
+
+_BOLT 12 is currently experimental and you will need to add the __--experimental-offers__ flag when starting lightningd_
 
 ## Background
 
