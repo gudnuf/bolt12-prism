@@ -85,9 +85,6 @@ def deleteprism(plugin, offer_id):
         return e
 
 
-plugin.add_option('destination', 'destination', 'default_destination')
-
-
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
     try:
