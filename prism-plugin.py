@@ -3,7 +3,7 @@ import json
 import os
 import re
 from math import floor
-from pyln.client import Plugin, RpcError, LightningRpc, Millisatoshi
+from pyln.client import Plugin, RpcError, Millisatoshi
 
 plugin = Plugin()
 
@@ -24,21 +24,18 @@ def createprism(plugin, label, members):
 
         plugin.log(f"Members: {members}")
 
-        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
-        lrpc = LightningRpc(path)
-
         # returns object containing bolt12 offer
-        offer = lrpc.offer("any", label)
+        offer = plugin.rpc.offer("any", label)
         offer_id = offer["offer_id"]
         plugin.log(f"Offer: {offer}")
 
-        datastore = lrpc.listdatastore(offer_id)["datastore"]
+        datastore = plugin.rpc.listdatastore(offer_id)["datastore"]
         if any(offer_id in d['key'] for d in datastore):
             raise Exception('Existing offer already exists')
 
         # add the prism info to datastore with the offer_id as the key
-        lrpc.datastore(offer["offer_id"],
-                       string=json.dumps({"label": label, "bolt12": offer["bolt12"], "offer_id":offer_id, "members": members}))
+        plugin.rpc.datastore(offer["offer_id"],
+                             string=json.dumps({"label": label, "bolt12": offer["bolt12"], "offer_id": offer_id, "members": members}))
 
         return offer
     except RpcError as e:
@@ -49,13 +46,10 @@ def createprism(plugin, label, members):
 @plugin.method("listprisms")
 def listprisms(plugin):
     try:
-        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
-        lrpc = LightningRpc(path)
-
-        offers = lrpc.listoffers()["offers"]
+        offers = plugin.rpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
 
-        datastore = lrpc.listdatastore()["datastore"]
+        datastore = plugin.rpc.listdatastore()["datastore"]
 
         # extract all datastore entries with a key that matches our offer_ids
         prisms = [i for i in datastore if any(
@@ -71,18 +65,16 @@ def listprisms(plugin):
     except RpcError as e:
         plugin.log(e)
         return e
-    
+
+
 @plugin.method("deleteprism")
 def deleteprism(plugin, offer_id):
     try:
-        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
-        lrpc = LightningRpc(path)
-
-        prisms = get_prism_json(lrpc)["prisms"]
+        prisms = get_prism_json()["prisms"]
 
         if any(offer_id in d['offer_id'] for d in prisms):
-            lrpc.deldatastore(offer_id)
-            lrpc.disableoffer(offer_id)
+            plugin.rpc.deldatastore(offer_id)
+            plugin.rpc.disableoffer(offer_id)
         else:
             raise Exception(f'Offer "{offer_id}" not found')
 
@@ -101,10 +93,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
     try:
         offer_id = invoice_payment["label"].split("-")[0]
 
-        path = os.path.join(plugin.lightning_dir, plugin.rpc_filename)
-        lrpc = LightningRpc(path)
-
-        datastore = lrpc.listdatastore(offer_id)
+        datastore = plugin.rpc.listdatastore(offer_id)
         data_string = datastore['datastore'][0]['string'].replace('\\"', '"')
         data_json = json.loads(data_string)
 
@@ -123,7 +112,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
             if member.get("type") == "keysend":
                 try:
-                    payment = lrpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
+                    payment = plugin.rpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
                         deserved_msats))
 
                     result = create_payment_result(member, payment)
@@ -136,10 +125,10 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
             else:
                 try:
-                    invoice_obj = lrpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
+                    invoice_obj = plugin.rpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
                         deserved_msats))
 
-                    payment = lrpc.pay(bolt11=invoice_obj["invoice"])
+                    payment = plugin.rpc.pay(bolt11=invoice_obj["invoice"])
 
                     result = create_payment_result(member, payment)
                     payment_results.append(result)
@@ -155,12 +144,12 @@ def on_payment(plugin, invoice_payment, **kwargs):
         return e
 
 
-def get_prism_json(lrpc):
+def get_prism_json():
     try:
-        offers = lrpc.listoffers()["offers"]
+        offers = plugin.rpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
 
-        datastore = lrpc.listdatastore()["datastore"]
+        datastore = plugin.rpc.listdatastore()["datastore"]
 
         # extract all datastore entries with a key that matches our offer_ids
         prisms = [i for i in datastore if any(
