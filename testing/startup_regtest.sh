@@ -114,7 +114,7 @@ start_nodes() {
 
 		# Start the lightning nodes
 		test -f "/tmp/l$i-regtest/lightningd-regtest.pid" || \
-			$EATMYDATA "$LIGHTNINGD" "--lightning-dir=/tmp/l$i-regtest" &
+			$EATMYDATA "$LIGHTNINGD" "--lightning-dir=/tmp/l$i-regtest" "--experimental-offers" &
 		# shellcheck disable=SC2139 disable=SC2086
 		alias l$i-cli="$LCLI --lightning-dir=/tmp/l$i-regtest"
 		# shellcheck disable=SC2139 disable=SC2086
