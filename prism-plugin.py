@@ -86,6 +86,24 @@ def listprisms(plugin):
         return e
 
 
+@plugin.method("updateprism")
+def updateprism(plugin, offer_id):
+    try:
+        # validate_members(members)
+
+        if len(plugin.rpc.listdatastore(offer_id)["datastore"]) == 0:
+            raise ValueError("prism with that ID does not exist")
+
+        prisms = get_prism_json()["prisms"]
+
+        if any(offer_id in d['offer_id'] for d in prisms):
+            plugin.log(f"{prisms}")
+
+    except RpcError as e:
+        plugin.log(e)
+        return e
+
+
 @plugin.method("deleteprism")
 def deleteprism(plugin, offer_id):
     try:
