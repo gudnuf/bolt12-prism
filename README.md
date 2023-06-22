@@ -1,128 +1,168 @@
-# ROYGBIV
-This project started at the 2023 btc++ conference in Austin, TX. The plugin will now live in this repo, but you can see where it started [here](https://github.com/farscapian/prism-hackathon) and [where it went](https://github.com/farscapian/clams-app-docker/blob/76ce6d3eb278fe6c10369b8fba8e28d68041af19/roygbiv/clightning/cln-plugins/prism-plugin.py) from there. . . now we're here and here we will stay.
+# BOLT 12 Prism Plugin
 
-![Lightning Prisms](https://camo.githubusercontent.com/1952f4c33ec82c8dbe748f0b0fa5925659d66add0bd93591d24245322d100581/68747470733a2f2f692e696d6775722e636f6d2f686555636b71342e6a7067)
+A CLN plugin for creating and interacting with BOLT 12 prisms.
 
-`createprism` and `listprisms` are RPC methods  to create and fetch bolt12 offers representing a lightning prism.
+![roygbiv](https://github.com/daGoodenough/bolt12-prism/assets/108303703/2c4ba75d-b0ab-4c3f-a5c4-2202716a04a0)
 
-## Usage:
+_BOLT 12 is currently experimental and you will need to add the **--experimental-offers** flag when starting lightningd_
 
-ROYGBIV adds two RPC methods. _createprism_ and _listprisms_.
+## Background
 
-### Creating a prism:
+This started as the winning hackathon project at btc++ 2023 in Austin, Tx.
 
-- **method**: _createprism_
-- **params**: _label_ as a string and _members_ as an array
+Some other projects that compliment this one are
 
-```
-lightning-cli createprism label="string" members='[{"name": "node_pubkey", "destination": "node_pubkey", "split": 1 <= num <= 1000}]'
-```
+- [roygbiv.money](https://roygbiv.money) where you can experiment with prisms in regtest
+- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms
+- [roygbiv-stack](https://github.com/farscapian/roygbiv-stack) to deploy CLN nodes running prisms on any network
+- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend)
 
-Returns the bolt12 offer:
+## Getting Started
+
+### Verify your node can create offers.
+
+1. `lightning-cli offer any label`
+2. You should get a response like this:
+
+   ```
+   {
+      "offer_id": "75a463ad38b27e83be53c802d3419592e005e130d29d5ea09b788d68816a46ff",
+      "active": true,
+      "single_use": false,
+      "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+      "used": false,
+      "created": true
+   }
+   ```
+
+## Starting the Plugin
+
+You can either manually start the plugin or add it your startup command.
+
+### Manually start the plugin
+
+`lightning-cli plugin start /path/to/prism-plugin.py`
+
+### Run on startup
+
+`lightningd --experimental-offers --plugin=/path/to/prism-plugin.py`
+
+## Using the plugin
+
+CLN exposes plugins as RPC methods
+
+There are currently three methods available for interacting with prisms: `createprism`, `listprisms`, and `deleteprism`
+
+### createprism
+
+`createprism label members`
+
+_label_ is a string to lable prisms and the corresponding offer
+
+_members_ is an array of member objects with the following form:
 
 ```
 {
-   "offer_id": "eb9479c5f517d0194b49cb3370d87211b9548134ee2d3df244f3fd16d3922a82",
+  name: string,
+  destination: string,
+  split: int,
+  type: ?string
+}
+```
+
+_name_: member's name
+
+_destination_: bolt12 or node pubkey. bolt12 is default.
+
+_split_: relative payment split for that member. All splits get normalized to a percentage.
+
+_type_: "bolt12" or "keysend". Defaults to "bolt12"
+
+#### 3 member prism example
+
+```
+lightning-cli createprism label="band-prism" members="[{\"name\": \"lead-singer\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":5}, {\"name\": \"drummer\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":2}, {\"name\": \"guitarist\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":3}]"
+
+```
+
+Returns the BOLT 12 offer:
+
+```
+{
+   "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
    "active": true,
    "single_use": false,
-   "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qunnzwfcxq6jw93pq05mpwn9adpag8pw6jzefwyh38zte0p73zf9lfkc8mvwq6gm9ekvz",
+   "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
    "used": false,
    "created": true
 }
-
 ```
 
-| Check out the [create_prism](https://github.com/farscapian/clams-app-docker/blob/main/channel_templates/create_prism.sh) script it you're running the [Clams stack](https://github.com/farscapian/clams-app-docker) with ROYGBIV
+_see testing/create_prism.sh_
 
-#### Key things to note:
+### listprisms
 
-- splits get normalized to relative sat amounts
+`listprisms`
 
-For example:
-
-```
-lightning-cli createprism label="string" members='[{"name": "alice", "destination": "alice_pubkey", "split": 1}, {"name": "bob", "destination": "bob_pubkey", "split": 1}, {"name": "carol", "destination": "carol_pubkey", "split": 1}]'
-```
-
-The above equally distributes each payment to Alice, Bob, and Carol. . . they each get 33%.
-
-Likewise, if Carol's split was changed to 2, then Alice --> 25%, Bob --> 25%, Carol --> 50%
-
-- split only accepts integers 1 - 1000
-- Currently **only supports recipients of prism payments with keysend enabled**
-
-### Listing prisms
-
-- **method**: _listprisms_
+Returns array of prism metadata:
 
 ```
-lightning-cli listprisms
+{
+   "prisms": [
+      {
+         "label": "band-prism",
+         "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+         "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
+         "members": [
+            {
+               "name": "lead-singer",
+               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+               "split": 5
+            },
+            {
+               "name": "drummer",
+               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+               "split": 2
+            },
+            {
+               "name": "guitarist",
+               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+               "split": 3
+            }
+         ]
+      }
+   ]
+}
 ```
 
-Returns an array of prism metadata:
+### deleteprism
 
-```
-[
-   {
-      "label": "'15875'",
-      "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qunnzdfcxu6jw93pqwmglk2a6d6lxdpqcj4ewlmrtpuseguafyh2l48y6fnav5rqgewvj"
-      "members": [
-         {
-            "name": "carol",
-            "destination": "0251b497f566aa3308a3b70f5619d2585afe7166c26137ff769f1dc7547e1cfe0d",
-            "split": 1
-         },
-      ]
-   }
-]
+**deleteprism offer_id**
 
-```
+When prisms are created, they get stored in the node's datastore with the offer id as the key.
 
-## Using with the [Clams Stack](https://github.com/farscapian/clams-app-docker)
+_see `datastore`, `listdatastore`, and `deldatastore` from the [CLN docs](https://lightning.readthedocs.io/)._
 
-1. Make sure you've gone through the setup and have these environment variables set:
+## Testing and Experimenting
 
-```
-CLN_COUNT=5
-BTC_CHAIN=regtest
-```
+The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the lightning repo.
 
-2. Interact with your CLN nodes by running the `lightning-cli.sh` script. To target a specific node, pass the script and id. Here's an example of how you can list the prisms on the second node (bob).
+### roygbiv-stack
 
-_NOTE: make sure you are in the root dir of clams-app-docker_
+This project is a docker stack capable of deployging a bitcoin node along with any number of CLN nodes running on any network.
 
-```
-./lightning-cli.sh --id=1 listprisms
-```
+With the right flags and running on regtest you can spin up a lightning network of CLN nodes running the prism plugin.
 
-You could of course replace `id` with 0 <= id < CLN_COUNT
+See the docs for more info.
 
-3. If you tried that and there was no prisms, try to run `create_prism.sh` (in the channel_templates dir). This will create one prism that lives on bob's node and stores carol, dave, and erin as prism members. Feel free to mess around with the splits they each recieve as defined in the script.
+### startup_regtest
 
-## Paying to a prism from the CLI
+There is a copy of this script in the testing dir along with some docs on the other scripts in there.
 
-_Assuming you are still using the clams-app-docker stack_
+## Future Development
 
-1. Retrieve the bolt12 offer for a prism: `./lightning-cli.sh --id=1 listprisms`
-2. Use Alice's node to fetch the invoice from Bob. Like so:
+- `updateprism` will be an available method for updating prism metadata while maintaining the same offer.
 
-```
-./lightning-cli.sh --id=0 fetchinvoice <bolt12> <amount_msats>
-```
+- generalize the testing scripts
 
-3. Now, Alice can pay Bob's offer:
-
-```
-./lightning-cli.sh --id=0 pay <invoice_copied_from_fetchinvoice>
-```
-
-4. Check out Carol, Dave, or Erin's balance by doing something like `./lightning-cli.sh --id=3 listfunds` and examine the `channel-sat` value for the channel they have open with Bob
-
-# Conclusion
-
-Creating a prism results in a payable bolt12 offer that will split the payment to n number of prism members. Each member gets a relative split. The `createprism` method allows you to create prisms and the `listprisms` method will fetch all prisms stored on that node. We then went through how you could use the [Clams Stack](https://github.com/farscapian/clams-app-docker) with prisms to easily spin up a test environment and interact with nodes and prims using the handy lightning-cli.sh script.
-
-## Future Dev Plans
-- full bolt12 support in and out of the prism
-- `delprism`
-- `updateprism`
+- create a series of tests to make sure the prism isn't broken.
