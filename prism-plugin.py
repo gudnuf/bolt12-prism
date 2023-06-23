@@ -4,6 +4,7 @@ import os
 import re
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
+import uuid
 
 plugin = Plugin()
 
@@ -24,6 +25,9 @@ def createprism(plugin, label, members):
 
         plugin.log(f"Members: {members}")
 
+        # Generate a unique ID for the prism
+        prism_id = str(uuid.uuid4())
+
         # returns object containing bolt12 offer
         offer = plugin.rpc.offer("any", label)
         offer_id = offer["offer_id"]
@@ -33,9 +37,17 @@ def createprism(plugin, label, members):
         if any(offer_id in d['key'] for d in datastore):
             raise Exception('Existing offer already exists')
 
+        # Create the prism dictionary
+        prism = {
+            "id": prism_id,
+            "label": label,
+            "bolt12": offer["bolt12"],
+            "offer_id": offer_id,
+            "members": members
+        }
+
         # add the prism info to datastore with the offer_id as the key
-        plugin.rpc.datastore(offer["offer_id"],
-                             string=json.dumps({"label": label, "bolt12": offer["bolt12"], "offer_id": offer_id, "members": members}))
+        plugin.rpc.datastore(offer_id, string=json.dumps(prism))
 
         return offer
     except RpcError as e:
@@ -70,9 +82,9 @@ def listprisms(plugin):
 @plugin.method("deleteprism")
 def deleteprism(plugin, offer_id):
     try:
-        prisms = get_prism_json()["prisms"]
+        prisms = get_prism_json(plugin.rpc, offer_id)["prisms"]
 
-        if any(offer_id in d['offer_id'] for d in prisms):
+        if offer_id in prisms:            
             plugin.rpc.deldatastore(offer_id)
             plugin.rpc.disableoffer(offer_id)
         else:
@@ -141,7 +153,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
         return e
 
 
-def get_prism_json():
+def get_prism_json(lrpc, offer_id=None):
     try:
         offers = plugin.rpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
@@ -152,13 +164,14 @@ def get_prism_json():
         prisms = [i for i in datastore if any(
             offer_id in i["key"] for offer_id in offer_ids)]
 
-        prism_data_string = list(
-            map(lambda prism: prism['string'].replace('\\"', '"'), prisms))
+        prism_data = {}
 
-        prism_data_json = list(
-            map(lambda prism: json.loads(prism), prism_data_string))
+        for prism in prisms:
+            prism_json = json.loads(prism['string'].replace('\\"', '"'))
+            prism_id = prism_json["offer_id"]
+            prism_data[prism_id] = prism_json
 
-        return {"prisms": prism_data_json}
+        return {"prisms": prism_data}
     except RpcError as e:
         plugin.log(e)
         return e
