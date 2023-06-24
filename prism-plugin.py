@@ -4,7 +4,6 @@ import os
 import re
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
-import uuid
 
 plugin = Plugin()
 
@@ -25,9 +24,6 @@ def createprism(plugin, label, members):
 
         plugin.log(f"Members: {members}")
 
-        # Generate a unique ID for the prism
-        prism_id = str(uuid.uuid4())
-
         # returns object containing bolt12 offer
         offer = plugin.rpc.offer("any", label)
         offer_id = offer["offer_id"]
@@ -39,7 +35,6 @@ def createprism(plugin, label, members):
 
         # Create the prism dictionary
         prism = {
-            "id": prism_id,
             "label": label,
             "bolt12": offer["bolt12"],
             "offer_id": offer_id,
