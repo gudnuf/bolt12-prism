@@ -39,6 +39,14 @@ This means "paying a prism" is equivalent to paying a BOLT 12 offer.
 
 When a payment is received, the node looks up in the datastore to see if a prism exists for that offer. Then it iterates through each member paying out their deserved amount.
 
+## Debugging
+
+There is a function in `prism-plugin.py` call `printout`.
+
+Use this to log anything while testing to a file on your machine.
+
+You can use to `watch -n 1 cat /tmp/plugin_out` to hot reload the file
+
 ## Help
 
 Reach out if you have any questions. This project has been a learning experience for me. Feedback is appreciated.

@@ -5,6 +5,18 @@ import re
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
 
+
+plugin_out = "/tmp/plugin_out"
+if os.path.isfile(plugin_out):
+    os.remove(plugin_out)
+
+
+# use this for debugging
+def printout(s):
+    with open(plugin_out, "a") as output:
+        output.write(s)
+
+
 plugin = Plugin()
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
@@ -79,7 +91,7 @@ def deleteprism(plugin, offer_id):
     try:
         prisms = get_prism_json(plugin.rpc, offer_id)["prisms"]
 
-        if offer_id in prisms:            
+        if offer_id in prisms:
             plugin.rpc.deldatastore(offer_id)
             plugin.rpc.disableoffer(offer_id)
         else:
