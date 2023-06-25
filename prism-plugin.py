@@ -31,6 +31,7 @@ def init(options, configuration, plugin, **kwargs):
 
 @plugin.method("createprism")
 def createprism(plugin, label, members):
+    '''Creates a BOLT12 prism.'''
     try:
         validate_members(members)
 
@@ -64,6 +65,7 @@ def createprism(plugin, label, members):
 
 @plugin.method("listprisms")
 def listprisms(plugin):
+    '''Lists all BOLT12 prisms.'''
     try:
         offers = plugin.rpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
@@ -88,6 +90,7 @@ def listprisms(plugin):
 
 @plugin.method("updateprism")
 def updateprism(plugin, offer_id, members):
+    '''Updates a BOLT12 prism.'''
     try:
         validate_members(members)
 
@@ -113,6 +116,7 @@ def updateprism(plugin, offer_id, members):
 
 @plugin.method("deleteprism")
 def deleteprism(plugin, offer_id):
+    '''Deletes a BOLT12 prism.'''
     try:
         prisms = get_prism_json(plugin.rpc, offer_id)["prisms"]
 
