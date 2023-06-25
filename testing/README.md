@@ -39,6 +39,12 @@ This means "paying a prism" is equivalent to paying a BOLT 12 offer.
 
 When a payment is received, the node looks up in the datastore to see if a prism exists for that offer. Then it iterates through each member paying out their deserved amount.
 
+## Updating a prism
+
+The plugin has a method called `updateprism` (see docs)
+
+I made the `update_prism.sh` script to more easily pass updates. You will need to paste in the `offer_id` of an existing prism. This script is primarily for testing the method, but could be improved to be more functional.
+
 ## Debugging
 
 There is a function in `prism-plugin.py` call `printout`.
