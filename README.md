@@ -143,6 +143,12 @@ When prisms are created, they get stored in the node's datastore with the offer 
 
 _see `datastore`, `listdatastore`, and `deldatastore` from the [CLN docs](https://lightning.readthedocs.io/)._
 
+### updateprism
+
+**updateprism offer_id members**
+
+Replaces the array of members in a preexisting prism with the members array that gets passed.
+
 ## Testing and Experimenting
 
 The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the lightning repo.
