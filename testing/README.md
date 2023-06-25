@@ -2,6 +2,8 @@
 
 Make sure you have cln and bitcoin core installed.
 
+Set path to your plugin in .testing.env
+
 ## Starting your network
 
 `source ./startup_regtest.sh`
@@ -20,7 +22,13 @@ That will fund all the nodes, connect them, and then open channels in the config
 
 ## Start/restart plugin
 
-`./prism_restart.sh`
+`./restart.sh [NODE_NUM]`
+
+NODE_NUM is an optional argument that specifies which node to start the prism. Defaults to `NODE_NUM=2`.
+
+Make sure the plugin path is correctly defined in the .testing.env file.
+
+This script assumes you are using the `startup_regtest` script which places each node in the `/tmp` dir.
 
 ## Create prisms
 
