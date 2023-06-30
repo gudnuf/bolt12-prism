@@ -4,6 +4,7 @@ import os
 import re
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
+import uuid
 
 
 plugin_out = "/tmp/plugin_out"
@@ -42,6 +43,10 @@ def createprism(plugin, label, members):
         datastore = plugin.rpc.listdatastore(offer_id)["datastore"]
         if any(offer_id in d['key'] for d in datastore):
             raise Exception('Existing offer already exists')
+
+        for member in members:
+            id = str(uuid.uuid4()).replace("-", "")
+            member["id"] = id
 
         # Create the prism dictionary
         prism = {
