@@ -35,12 +35,9 @@ def createprism(plugin, label, members):
     try:
         validate_members(members)
 
-        plugin.log(f"Members: {members}")
-
         # returns object containing bolt12 offer
         offer = plugin.rpc.offer("any", label)
         offer_id = offer["offer_id"]
-        plugin.log(f"Offer: {offer}")
 
         datastore = plugin.rpc.listdatastore(offer_id)["datastore"]
         if any(offer_id in d['key'] for d in datastore):
@@ -251,12 +248,10 @@ def validate_members(members):
         valid_destination = None
 
         if "type" not in member or member["type"] == "bolt12":
-            plugin.log("bolt12 destination")
             valid_destination = member["destination"] if bolt12Regex.match(
                 member["destination"]) else None
 
         if "type" in member and member["type"] == "keysend":
-            plugin.log("keysend destination")
             valid_destination = member["destination"] if pubkeyRegex.match(
                 member["destination"]) else None
 
