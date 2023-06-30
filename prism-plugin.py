@@ -5,6 +5,7 @@ import re
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
 import uuid
+from datetime import datetime
 
 
 plugin_out = "/tmp/plugin_out"
@@ -174,17 +175,24 @@ def on_payment(plugin, invoice_payment, **kwargs):
                 try:
                     invoice_obj = plugin.rpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
                         deserved_msats))
-
+                    printout(json.dumps(invoice_obj))
+                    printout("\n\n")
                     payment = plugin.rpc.pay(bolt11=invoice_obj["invoice"])
 
+                    printout(json.dumps(payment))
+                    printout("\n \n")
                     result = create_payment_result(member, payment)
                     payment_results.append(result)
 
                 except RpcError as e:
-                    result = create_payment_result(member, {}, e)
+                    printout("\n\n")
+                    printout(f"{e}")
+                    error = "Failed to pay {}".format(member["name"])
+                    result = create_payment_result(member, {}, error)
                     payment_results.append(result)
 
-        plugin.log(f"{payment_results}")
+        # plugin.log(f"{payment_results}")
+        log_payments(payment_results)
 
     except RpcError as e:
         plugin.log(e)
@@ -265,7 +273,16 @@ def validate_members(members):
                 "Destination must be a valid lightning node pubkey or bolt12 offer")
 
 
-def create_payment_result(member, payment, error=None):
+def log_payments(payment_result):
+    lightning_dir = plugin.rpc.getinfo()["lightning-dir"]
+    log_file = os.path.join("/tmp", lightning_dir, "prism.log")
+
+    with open(log_file, "a") as log:
+        json.dump(payment_result, log, indent=4)
+        log.write("\n")
+
+
+def create_payment_result(member, payment, error=None, owe="0"):
     if error:
         result = {
             "destination": member["destination"],
@@ -283,7 +300,7 @@ def create_payment_result(member, payment, error=None):
             "amount_msat": payment["amount_msat"],
             "amount_sent_msat": payment["amount_sent_msat"],
             "status": payment["status"],
-            "created_at": payment["created_at"],
+            "created_at": datetime.fromtimestamp(payment["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
             "error_message": ""
         }
     return result
