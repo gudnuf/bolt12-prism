@@ -1,14 +1,18 @@
 #! /bin/bash
 
-
+set -e
 
 source /home/daim/code/bolt12-prism/testing/startup_regtest.sh > /dev/null
 
+bc_funds=$(bitcoin-cli -regtest getwalletinfo | jq '.balance' -r | awk '{printf "%.0f\n", $0}')
 
-BIT_ADDR=$(bitcoin-cli -regtest getnewaddress)
+if (( bc_funds < 50 )); then
+  BIT_ADDR=$(bitcoin-cli -regtest getnewaddress)
 
-echo "Generating 101 blocks to $BIT_ADDR..."
-bitcoin-cli -regtest generatetoaddress 101 "$BIT_ADDR" > /dev/null
+  echo "Generating 101 blocks to $BIT_ADDR..."
+  bitcoin-cli -regtest generatetoaddress 101 "$BIT_ADDR" > /dev/null
+fi
+
 
 echo "**************************************"
 
