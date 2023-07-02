@@ -187,17 +187,12 @@ def on_payment(plugin, invoice_payment, **kwargs):
                     update_outlay(
                         offer_id, member["id"], remaining_msats)
 
-                    result = create_payment_result(member, payment)
-                    payment_results.append(result)
-
                 except RpcError as e:
                     update_outlay(offer_id, member["id"], member["outlay"])
                     error = create_payment_error(
-                        member["name"], 50)
-                    result = create_payment_result(member, {}, error)
-                    payment_results.append(result)
+                        member, member["outlay"], e.error, offer_id)
 
-        log_payments(payment_results)
+                    log_payments(error)
 
     except RpcError as e:
         plugin.log(e)
@@ -321,12 +316,22 @@ def log_payments(payment_result):
     log_file = os.path.join("/tmp", lightning_dir, "prism.log")
 
     with open(log_file, "a") as log:
-        json.dump(payment_result, log, indent=4)
-        log.write("\n")
+        log.write(str(payment_result))
+        log.write("\n\n")
 
 
-def create_payment_error(name, amount, message=None):
-    return "Failed to pay {} an amount of {}.".format(name, amount)
+def create_payment_error(member, outlay, rpc_error, prism_id):
+    error_message = "Failed to pay {} to {}".format(outlay, member["name"])
+    time = "{}".format(datetime.utcnow())
+
+    return {
+        "time": time,
+        "message": error_message,
+        "amount": outlay,
+        "member_id": member["id"],
+        "prism_id": prism_id,
+        "rpc_error": rpc_error,
+    }
 
 
 def create_payment_result(member, payment, error=None, owe="0"):
