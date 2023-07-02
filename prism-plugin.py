@@ -121,7 +121,7 @@ def updateprism(plugin, offer_id, members):
 def deleteprism(plugin, offer_id):
     '''Deletes a BOLT12 prism.'''
     try:
-        prisms = get_prism_json(plugin.rpc, offer_id)["prisms"]
+        prisms = get_prism_json(offer_id)["prisms"]
 
         if offer_id in prisms:
             plugin.rpc.deldatastore(offer_id)
@@ -193,7 +193,8 @@ def on_payment(plugin, invoice_payment, **kwargs):
         return e
 
 
-def get_prism_json(lrpc, offer_id=None):
+
+def get_prism_json(offer_id=None):
     try:
         offers = plugin.rpc.listoffers()["offers"]
         offer_ids = [offer["offer_id"] for offer in offers]
