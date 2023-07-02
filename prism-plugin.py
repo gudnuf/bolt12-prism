@@ -186,6 +186,8 @@ def on_payment(plugin, invoice_payment, **kwargs):
                     result = create_payment_result(member, {}, error)
                     payment_results.append(result)
 
+        log_payments(payment_results)
+
     except RpcError as e:
         plugin.log(e)
         return e
