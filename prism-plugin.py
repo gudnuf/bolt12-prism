@@ -194,6 +194,23 @@ def on_payment(plugin, invoice_payment, **kwargs):
         return e
 
 
+def update_member(offer_id, member_id, member):
+    try:
+        prism = get_prism_json()["prisms"][offer_id]
+
+        members = prism["members"]
+
+        for i, old_member in enumerate(members):
+            if old_member["id"] == member_id:
+                members[i] = member
+
+        prism["members"] = members
+
+        plugin.rpc.datastore(
+            key=offer_id, string=prism, mode="must-replace")
+    except RpcError as e:
+        plugin.log(e)
+
 
 def get_prism_json(offer_id=None):
     try:
@@ -217,6 +234,26 @@ def get_prism_json(offer_id=None):
     except RpcError as e:
         plugin.log(e)
         return e
+
+
+def get_member_json(offer_id, member_id):
+    prism = get_prism_json()["prisms"][offer_id]
+
+    members = prism["members"]
+
+    for member in members:
+        if member["id"] == member_id:
+            member = member
+            break
+
+    return member
+
+
+def update_outlay(offer_id, member_id, amount_msat):
+    member = get_member_json(offer_id, member_id)
+    member["outlay"] = amount_msat
+
+    update_member(offer_id, member_id, member)
 
 
 def validate_members(members):
