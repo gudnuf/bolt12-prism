@@ -1,1 +1,5 @@
 .testing.env
+__pycache__
+.pytest_cache
+notes.txt
+test_prism-plugin.py
