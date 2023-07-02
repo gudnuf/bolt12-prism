@@ -48,6 +48,7 @@ def createprism(plugin, label, members):
         for member in members:
             id = str(uuid.uuid4()).replace("-", "")
             member["id"] = id
+            member["outlay"] = 0
 
         # Create the prism dictionary
         prism = {
