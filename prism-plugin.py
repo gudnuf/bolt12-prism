@@ -174,16 +174,26 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
             else:
                 try:
+                    member["outlay"] += deserved_msats
+
                     invoice_obj = plugin.rpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
-                        deserved_msats))
+                        member["outlay"]))
 
                     payment = plugin.rpc.pay(bolt11=invoice_obj["invoice"])
+
+                    remaining_msats = member["outlay"] - \
+                        int(payment["amount_sent_msat"])
+
+                    update_outlay(
+                        offer_id, member["id"], remaining_msats)
 
                     result = create_payment_result(member, payment)
                     payment_results.append(result)
 
                 except RpcError as e:
-                    error = "Failed to pay {}".format(member["name"])
+                    update_outlay(offer_id, member["id"], member["outlay"])
+                    error = create_payment_error(
+                        member["name"], 50)
                     result = create_payment_result(member, {}, error)
                     payment_results.append(result)
 
@@ -313,6 +323,10 @@ def log_payments(payment_result):
     with open(log_file, "a") as log:
         json.dump(payment_result, log, indent=4)
         log.write("\n")
+
+
+def create_payment_error(name, amount, message=None):
+    return "Failed to pay {} an amount of {}.".format(name, amount)
 
 
 def create_payment_result(member, payment, error=None, owe="0"):
