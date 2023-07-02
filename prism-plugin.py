@@ -175,24 +175,16 @@ def on_payment(plugin, invoice_payment, **kwargs):
                 try:
                     invoice_obj = plugin.rpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
                         deserved_msats))
-                    printout(json.dumps(invoice_obj))
-                    printout("\n\n")
+
                     payment = plugin.rpc.pay(bolt11=invoice_obj["invoice"])
 
-                    printout(json.dumps(payment))
-                    printout("\n \n")
                     result = create_payment_result(member, payment)
                     payment_results.append(result)
 
                 except RpcError as e:
-                    printout("\n\n")
-                    printout(f"{e}")
                     error = "Failed to pay {}".format(member["name"])
                     result = create_payment_result(member, {}, error)
                     payment_results.append(result)
-
-        # plugin.log(f"{payment_results}")
-        log_payments(payment_results)
 
     except RpcError as e:
         plugin.log(e)
