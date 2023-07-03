@@ -166,8 +166,9 @@ def on_payment(plugin, invoice_payment, **kwargs):
                     pay(member["type"], member["destination"], amount_msat)
 
                 except RpcError as e:
-                    result = create_payment_result(member, {}, e)
-                    payment_results.append(result)
+                    error = create_payment_error(
+                        member, member["outlay"], e.error, offer_id)
+                    log_payments(error)
 
             else:
                 try:
