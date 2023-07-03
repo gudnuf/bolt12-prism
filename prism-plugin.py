@@ -48,7 +48,7 @@ def createprism(plugin, label, members):
         for member in members:
             id = str(uuid.uuid4()).replace("-", "")
             member["id"] = id
-            member["outlay"] = 0
+            member["outlay"] = Millisatoshi(0)
 
         # Create the prism dictionary
         prism = {
@@ -156,12 +156,12 @@ def on_payment(plugin, invoice_payment, **kwargs):
         for member in members:
             # iterate over each prism member and send them their split
             # msat comes as "5000msat"
-            deserved_msats = floor((member['split'] / total_split) *
-                                   int(invoice_payment['msat'][:-4]))
+            deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
+                                                int(invoice_payment['msat'][:-4])))
 
             if member.get("type") == "keysend":
                 try:
-                    amount_msat = Millisatoshi(deserved_msats)
+                    amount_msat = deserved_msats
 
                     pay(member["type"], member["destination"], amount_msat)
 
@@ -172,13 +172,14 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
             else:
                 try:
-                    member["outlay"] += deserved_msats
+                    member["outlay"] = deserved_msats + \
+                        Millisatoshi(member["outlay"])
 
                     payment = pay(
                         "bolt12", member["destination"], member["outlay"])
 
                     remaining_msats = member["outlay"] - \
-                        int(payment["amount_sent_msat"])
+                        payment["amount_sent_msat"]
 
                     update_outlay(
                         offer_id, member["id"], remaining_msats)
