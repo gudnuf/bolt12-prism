@@ -161,12 +161,9 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
             if member.get("type") == "keysend":
                 try:
-                    payment = plugin.rpc.keysend(destination=member["destination"], amount_msat=Millisatoshi(
-                        deserved_msats))
+                    amount_msat = Millisatoshi(deserved_msats)
 
-                    result = create_payment_result(member, payment)
-
-                    payment_results.append(result)
+                    pay(member["type"], member["destination"], amount_msat)
 
                 except RpcError as e:
                     result = create_payment_result(member, {}, e)
@@ -176,10 +173,8 @@ def on_payment(plugin, invoice_payment, **kwargs):
                 try:
                     member["outlay"] += deserved_msats
 
-                    invoice_obj = plugin.rpc.fetchinvoice(offer=member["destination"], amount_msat=Millisatoshi(
-                        member["outlay"]))
-
-                    payment = plugin.rpc.pay(bolt11=invoice_obj["invoice"])
+                    payment = pay(
+                        "bolt12", member["destination"], member["outlay"])
 
                     remaining_msats = member["outlay"] - \
                         int(payment["amount_sent_msat"])
@@ -197,6 +192,21 @@ def on_payment(plugin, invoice_payment, **kwargs):
     except RpcError as e:
         plugin.log(e)
         return e
+
+
+def pay(payment_type, destination, amount_msat):
+    if payment_type == "keysend":
+        plugin.rpc.keysend(destination=destination, amount_msat=amount_msat)
+
+    if payment_type == "bolt12":
+        invoice_obj = plugin.rpc.fetchinvoice(
+            offer=destination, amount_msat=amount_msat)
+
+        bolt11 = invoice_obj["invoice"]
+
+        payment_result = plugin.rpc.pay(bolt11=bolt11)
+
+        return payment_result
 
 
 def update_member(offer_id, member_id, member):
