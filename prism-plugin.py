@@ -7,6 +7,7 @@ from pyln.client import Plugin, RpcError, Millisatoshi
 import uuid
 from datetime import datetime
 
+prism_plugin_version = "v0.0.1"
 
 plugin_out = "/tmp/plugin_out"
 if os.path.isfile(plugin_out):
@@ -55,6 +56,7 @@ def createprism(plugin, label, members):
             "label": label,
             "bolt12": offer["bolt12"],
             "offer_id": offer_id,
+            "version": prism_plugin_version,
             "members": members
         }
 
