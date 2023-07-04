@@ -46,8 +46,12 @@ def createprism(plugin, label, members):
             raise Exception('Existing offer already exists')
 
         for member in members:
+            destination_type = member.get("type") or "bolt12"
+            member["type"] = destination_type
+
             id = str(uuid.uuid4()).replace("-", "")
             member["id"] = id
+
             member["outlay"] = Millisatoshi(0)
 
         # Create the prism dictionary
@@ -139,40 +143,36 @@ def deleteprism(plugin, offer_id):
 
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
-    try:
-        offer_id = invoice_payment["label"].split("-")[0]
+    offer_id = invoice_payment["label"].split("-")[0]
 
-        members = get_prism_json()["prisms"][offer_id]["members"]
+    members = get_prism_json()["prisms"][offer_id]["members"]
 
-        # determine how many satoshis to send each member
-        total_split = sum(map(lambda member: member['split'], members))
+    # determine how many satoshis to send each member
+    total_split = sum(map(lambda member: member['split'], members))
 
-        for member in members:
-            # iterate over each prism member and send them their split
-            # msat comes as "5000msat"
-            deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
-                                                int(invoice_payment['msat'][:-4])))
+    for member in members:
+        # iterate over each prism member and send them their split
+        # msat comes as "5000msat"
+        deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
+                                            int(invoice_payment['msat'][:-4])))
 
-            outlay = deserved_msats + Millisatoshi(member["outlay"])
+        outlay = deserved_msats + Millisatoshi(member["outlay"])
 
-            if member.get("type") == "keysend":
-                payment = pay(member["type"],
-                              member["destination"], outlay)
-
-            else:
-                payment = pay(
-                    "bolt12", member["destination"], outlay)
+        try:
+            payment = pay(
+                member["type"], member["destination"], outlay)
 
             outlay -= payment["amount_sent_msat"]
 
             update_outlay(
                 offer_id, member["id"], outlay)
 
-    except RpcError as e:
-        update_outlay(offer_id, member["id"], outlay)
-        error = create_payment_error(
-            member, member["outlay"], e.error, offer_id)
-        log_payments(error)
+        except RpcError as e:
+            update_outlay(offer_id, member["id"], outlay)
+            
+            error = create_payment_error(
+                member, member["outlay"], e.error, offer_id)
+            log_payments(error)
 
 
 def pay(payment_type, destination, amount_msat):
