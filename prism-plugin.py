@@ -142,63 +142,44 @@ def on_payment(plugin, invoice_payment, **kwargs):
     try:
         offer_id = invoice_payment["label"].split("-")[0]
 
-        datastore = plugin.rpc.listdatastore(offer_id)
-        data_string = datastore['datastore'][0]['string'].replace('\\"', '"')
-        data_json = json.loads(data_string)
-
-        # returns list of members or empty list
-        members = data_json.get("members", [])
+        members = get_prism_json()["prisms"][offer_id]["members"]
 
         # determine how many satoshis to send each member
         total_split = sum(map(lambda member: member['split'], members))
 
-        payment_results = []
         for member in members:
             # iterate over each prism member and send them their split
             # msat comes as "5000msat"
             deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
                                                 int(invoice_payment['msat'][:-4])))
 
+            outlay = deserved_msats + Millisatoshi(member["outlay"])
+
             if member.get("type") == "keysend":
-                try:
-                    amount_msat = deserved_msats
-
-                    pay(member["type"], member["destination"], amount_msat)
-
-                except RpcError as e:
-                    error = create_payment_error(
-                        member, member["outlay"], e.error, offer_id)
-                    log_payments(error)
+                payment = pay(member["type"],
+                              member["destination"], outlay)
 
             else:
-                try:
-                    member["outlay"] = deserved_msats + \
-                        Millisatoshi(member["outlay"])
+                payment = pay(
+                    "bolt12", member["destination"], outlay)
 
-                    payment = pay(
-                        "bolt12", member["destination"], member["outlay"])
+            outlay -= payment["amount_sent_msat"]
 
-                    remaining_msats = member["outlay"] - \
-                        payment["amount_sent_msat"]
-
-                    update_outlay(
-                        offer_id, member["id"], remaining_msats)
-
-                except RpcError as e:
-                    update_outlay(offer_id, member["id"], member["outlay"])
-                    error = create_payment_error(
-                        member, member["outlay"], e.error, offer_id)
-
-                    log_payments(error)
+            update_outlay(
+                offer_id, member["id"], outlay)
 
     except RpcError as e:
-        plugin.log(e)
-        return e
+        update_outlay(offer_id, member["id"], outlay)
+        error = create_payment_error(
+            member, member["outlay"], e.error, offer_id)
+        log_payments(error)
 
 
 def pay(payment_type, destination, amount_msat):
+    payment_result = {}
     if payment_type == "keysend":
-        plugin.rpc.keysend(destination=destination, amount_msat=amount_msat)
+        payment_result = plugin.rpc.keysend(
+            destination=destination, amount_msat=amount_msat)
 
     if payment_type == "bolt12":
         invoice_obj = plugin.rpc.fetchinvoice(
@@ -208,7 +189,7 @@ def pay(payment_type, destination, amount_msat):
 
         payment_result = plugin.rpc.pay(bolt11=bolt11)
 
-        return payment_result
+    return payment_result
 
 
 def update_member(offer_id, member_id, member):
