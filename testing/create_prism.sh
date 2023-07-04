@@ -6,8 +6,9 @@ set -e
 CAROL_OFFER=$(lightning-cli --lightning-dir=/tmp/l3-regtest offer any "\"$RANDOM"\" | jq -r '.bolt12')
 DAVE_OFFER=$(lightning-cli --lightning-dir=/tmp/l4-regtest offer any "\"$RANDOM"\" | jq -r '.bolt12')
 ERIN_OFFER=$(lightning-cli --lightning-dir=/tmp/l5-regtest offer any "\"$RANDOM"\" | jq -r '.bolt12')
+DAVE_ID=$(lightning-cli --lightning-dir=/tmp/l4-regtest getinfo | jq -r '.id')
 
-lightning-cli --lightning-dir=/tmp/l2-regtest createprism label="\"$RANDOM"\" members="[{\"name\" : \"carol\", \"destination\": \"$CAROL_OFFER\", \"split\": 5}, {\"name\": \"dave\", \"destination\": \"$DAVE_OFFER\", \"split\": 10}, {\"name\": \"erin\", \"destination\": \"$ERIN_OFFER\", \"split\": 5}]"
+lightning-cli --lightning-dir=/tmp/l2-regtest createprism label="\"$RANDOM"\" members="[{\"name\" : \"carol\", \"destination\": \"$CAROL_OFFER\", \"split\": 5}, {\"name\": \"dave\", \"destination\": \"$DAVE_ID\", \"split\": 10, \"type\":\"keysend\"}, {\"name\": \"erin\", \"destination\": \"$ERIN_OFFER\", \"split\": 5}]"
 
 
 
