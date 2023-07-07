@@ -264,8 +264,8 @@ def update_outlay(offer_id, member_id, amount_msat):
 
 
 def validate_members(members):
-    if len(members) < 2:
-        raise ValueError("Prism must contain at least two members")
+    if len(members) < 1:
+        raise ValueError("Prism must contain at least one members")
 
     if not isinstance(members, list):
         raise ValueError("Members must be a list.")
