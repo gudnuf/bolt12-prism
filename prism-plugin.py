@@ -44,7 +44,7 @@ def createprism(plugin, label, members):
 
         datastore = plugin.rpc.listdatastore(offer_id)["datastore"]
         if any(offer_id in d['key'] for d in datastore):
-            raise Exception('Existing offer already exists')
+            plugin.rpc.enableoffer(offer_id)
 
         for member in members:
             destination_type = member.get("type") or "bolt12"
