@@ -58,7 +58,6 @@ def createprism(plugin, label, members):
         # Create the prism dictionary
         prism = {
             "label": label,
-            "bolt12": offer["bolt12"],
             "offer_id": offer_id,
             "version": prism_plugin_version,
             "members": members
@@ -91,6 +90,13 @@ def listprisms(plugin):
 
         prism_data_json = list(
             map(lambda prism: json.loads(prism), prism_data_string))
+        
+        for prism in prism_data_json:
+            for offer in offers:
+                if offer["offer_id"] == prism["offer_id"]:
+                    del prism['offer_id']
+                    prism["offer"] = offer
+                    break
 
         return {"prisms": prism_data_json}
     except RpcError as e:
