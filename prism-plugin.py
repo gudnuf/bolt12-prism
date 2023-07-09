@@ -53,7 +53,7 @@ def createprism(plugin, label, members):
             id = str(uuid.uuid4()).replace("-", "")
             member["id"] = id
 
-            member["outlay"] = Millisatoshi(0)
+            member["outlay_msats"] = 0
 
         # Create the prism dictionary
         prism = {
@@ -158,22 +158,22 @@ def on_payment(plugin, invoice_payment, **kwargs):
         deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
                                             int(invoice_payment['msat'][:-4])))
 
-        outlay = deserved_msats + Millisatoshi(member["outlay"])
+        outlay_msats = deserved_msats + Millisatoshi(member["outlay_msats"])
 
         try:
             payment = pay(
-                member["type"], member["destination"], outlay)
+                member["type"], member["destination"], outlay_msats)
 
-            outlay -= payment["amount_sent_msat"]
+            outlay_msats -= payment["amount_sent_msat"]
 
             update_outlay(
-                offer_id, member["id"], outlay)
+                offer_id, member["id"], outlay_msats)
 
         except RpcError as e:
-            update_outlay(offer_id, member["id"], outlay)
+            update_outlay(offer_id, member["id"], outlay_msats)
             
             error = create_payment_error(
-                member, member["outlay"], e.error, offer_id)
+                member, member["outlay_msats"], e.error, offer_id)
             log_payments(error)
 
 
@@ -251,7 +251,7 @@ def get_member_json(offer_id, member_id):
 
 def update_outlay(offer_id, member_id, amount_msat):
     member = get_member_json(offer_id, member_id)
-    member["outlay"] = amount_msat
+    member["outlay_msats"] = amount_msat
 
     update_member(offer_id, member_id, member)
 
@@ -315,14 +315,14 @@ def log_payments(payment_result):
         log.write("\n\n")
 
 
-def create_payment_error(member, outlay, rpc_error, prism_id):
-    error_message = "Failed to pay {} to {}".format(outlay, member["name"])
+def create_payment_error(member, outlay_msats, rpc_error, prism_id):
+    error_message = "Failed to pay {} to {}".format(outlay_msats, member["name"])
     time = "{}".format(datetime.utcnow())
 
     return {
         "time": time,
         "message": error_message,
-        "amount": outlay,
+        "amount": outlay_msats,
         "member_id": member["id"],
         "prism_id": prism_id,
         "rpc_error": rpc_error,
