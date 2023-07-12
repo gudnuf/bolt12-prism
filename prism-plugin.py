@@ -257,7 +257,7 @@ def get_member_json(offer_id, member_id):
 
 def update_outlay(offer_id, member_id, amount_msat):
     member = get_member_json(offer_id, member_id)
-    member["outlay_msats"] = amount_msat
+    member["outlay_msats"] = int(amount_msat)
 
     update_member(offer_id, member_id, member)
 
