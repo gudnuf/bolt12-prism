@@ -90,7 +90,7 @@ def listprisms(plugin):
 
         prism_data_json = list(
             map(lambda prism: json.loads(prism), prism_data_string))
-        
+
         for prism in prism_data_json:
             for offer in offers:
                 if offer["offer_id"] == prism["offer_id"]:
@@ -151,36 +151,40 @@ def deleteprism(plugin, offer_id):
 
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
-    offer_id = invoice_payment["label"].split("-")[0]
+    try:
+        offer_id = invoice_payment["label"].split("-")[0]
 
-    members = get_prism_json()["prisms"][offer_id]["members"]
+        members = get_prism_json()["prisms"][offer_id]["members"]
 
-    # determine how many satoshis to send each member
-    total_split = sum(map(lambda member: member['split'], members))
+        # determine how many satoshis to send each member
+        total_split = sum(map(lambda member: member['split'], members))
 
-    for member in members:
-        # iterate over each prism member and send them their split
-        # msat comes as "5000msat"
-        deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
-                                            int(invoice_payment['msat'][:-4])))
+        for member in members:
+            # iterate over each prism member and send them their split
+            # msat comes as "5000msat"
+            deserved_msats = Millisatoshi(floor((member['split'] / total_split) *
+                                                int(invoice_payment['msat'][:-4])))
 
-        outlay_msats = deserved_msats + Millisatoshi(member["outlay_msats"])
+            outlay_msats = deserved_msats + \
+                Millisatoshi(member["outlay_msats"])
 
-        try:
-            payment = pay(
-                member["type"], member["destination"], outlay_msats)
+            try:
+                payment = pay(
+                    member["type"], member["destination"], outlay_msats)
 
-            outlay_msats -= payment["amount_sent_msat"]
+                outlay_msats -= payment["amount_sent_msat"]
 
-            update_outlay(
-                offer_id, member["id"], outlay_msats)
+                update_outlay(
+                    offer_id, member["id"], outlay_msats)
 
-        except RpcError as e:
-            update_outlay(offer_id, member["id"], outlay_msats)
-            
-            error = create_payment_error(
-                member, member["outlay_msats"], e.error, offer_id)
-            log_payments(error)
+            except RpcError as e:
+                update_outlay(offer_id, member["id"], outlay_msats)
+
+                error = create_payment_error(
+                    member, member["outlay_msats"], e.error, offer_id)
+                log_payments(error)
+    except RpcError as e:
+        printout("Payment error: {}".format(e))
 
 
 def pay(payment_type, destination, amount_msat):
@@ -324,7 +328,8 @@ def log_payments(payment_result):
 
 
 def create_payment_error(member, outlay_msats, rpc_error, prism_id):
-    error_message = "Failed to pay {} to {}".format(outlay_msats, member["name"])
+    error_message = "Failed to pay {} to {}".format(
+        outlay_msats, member["name"])
     time = "{}".format(datetime.utcnow())
 
     return {
