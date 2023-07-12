@@ -64,7 +64,7 @@ def createprism(plugin, label, members):
         }
 
         # add the prism info to datastore with the offer_id as the key
-        plugin.rpc.datastore(offer_id, string=json.dumps(prism))
+        plugin.rpc.datastore(key=offer_id, string=json.dumps(prism))
 
         return offer
     except RpcError as e:
@@ -212,8 +212,10 @@ def update_member(offer_id, member_id, member):
 
         prism["members"] = members
 
+        prism_string = json.dumps(prism)
+
         plugin.rpc.datastore(
-            key=offer_id, string=prism, mode="must-replace")
+            key=offer_id, string=prism_string, mode="must-replace")
     except RpcError as e:
         plugin.log(e)
 
