@@ -1,6 +1,6 @@
 #! /bin/bash
 
-set -e
+set -ex
 
 source /home/daim/code/bolt12-prism/testing/startup_regtest.sh > /dev/null
 
@@ -36,6 +36,8 @@ bitcoin-cli -regtest -generate 1 > /dev/null
 bitcoin-cli -regtest sendtoaddress "$ADDR2" 1 > /dev/null
 bitcoin-cli -regtest -generate 1 > /dev/null
 
+sleep 10
+
 echo "***************************************"
 
 echo "Connecting 1 --> 2"
@@ -50,6 +52,8 @@ connect 2 4 > /dev/null
 echo "Connecting 2--> 5"
 connect 2 5 > /dev/null
 
+sleep 10
+
 ID2=$(lightning-cli  --lightning-dir=/tmp/l2-regtest getinfo | jq -r '.id')
 ID3=$(lightning-cli  --lightning-dir=/tmp/l3-regtest getinfo | jq -r '.id')
 ID4=$(lightning-cli  --lightning-dir=/tmp/l4-regtest getinfo | jq -r '.id')
@@ -61,17 +65,21 @@ FUNDING_AMOUNT=1000000
 
 echo "Funding 1 --> 2 with $FUNDING_AMOUNT sats"
 lightning-cli --lightning-dir=/tmp/l1-regtest fundchannel "$ID2" "$FUNDING_AMOUNT" > /dev/null
+sleep 3
 
 echo "Funding 2 --> 3 with $FUNDING_AMOUNT sats"
 lightning-cli --lightning-dir=/tmp/l2-regtest fundchannel "$ID3" "$FUNDING_AMOUNT" > /dev/null
+sleep 3
 
 echo "Funding 2 --> 4 with $FUNDING_AMOUNT sats"
 lightning-cli --lightning-dir=/tmp/l2-regtest fundchannel "$ID4" "$FUNDING_AMOUNT" > /dev/null
+sleep 3
 
 echo "Funding 2 --> 5 with $FUNDING_AMOUNT sats"
 lightning-cli --lightning-dir=/tmp/l2-regtest fundchannel "$ID5" "$FUNDING_AMOUNT" > /dev/null
+sleep 3
 
-bitcoin-cli -regtest -generate 6 > /dev/null
+bitcoin-cli -regtest -generate 10 > /dev/null
 
 echo "***********************************"
 
