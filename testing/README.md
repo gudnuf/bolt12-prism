@@ -30,11 +30,11 @@ Make sure the plugin path is correctly defined in the .testing.env file.
 
 This script assumes you are using the `startup_regtest` script which places each node in the `/tmp` dir.
 
-> > NOTE: A handy trick is to use:
+#### NOTE: A handy trick is to use:
 
-> > `ls | entr -s './testing/restart.sh'`
+`ls | entr -s './testing/restart.sh'`
 
-> > This will restart the plugin every time a file in the root dir changes
+This will restart the plugin every time a file in the root dir changes
 
 ## Create prisms
 
