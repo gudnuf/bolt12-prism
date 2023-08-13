@@ -37,7 +37,11 @@ Some other projects that compliment this one are
 
 ## Starting the Plugin
 
-You can either manually start the plugin or add it your startup command.
+There are 3 ways to start a CLN plugin...
+### Add to Your Config
+Find your c-lightning config file and add
+
+`plugin=/path/to/prism-plugin.py`
 
 ### Manually start the plugin
 
@@ -49,15 +53,13 @@ You can either manually start the plugin or add it your startup command.
 
 ## Using the plugin
 
-CLN exposes plugins as RPC methods
-
-There are currently three methods available for interacting with prisms: `createprism`, `listprisms`, and `deleteprism`
+There are currently four methods available for interacting with prisms: `createprism`, `listprisms`, `updateprism` and `deleteprism`
 
 ### createprism
 
-`createprism label members`
+**createprism** _label members[]_
 
-_label_ is a string to lable prisms and the corresponding offer
+_label_ is a string to label prisms and the corresponding offer
 
 _members_ is an array of member objects with the following form:
 
@@ -66,11 +68,11 @@ _members_ is an array of member objects with the following form:
   name: string,
   destination: string,
   split: int,
-  type: ?string
+  type?: string
 }
 ```
 
-_name_: member's name
+_name_: identifier for the member
 
 _destination_: bolt12 or node pubkey. bolt12 is default.
 
@@ -102,7 +104,7 @@ _see testing/create_prism.sh_
 
 ### listprisms
 
-`listprisms`
+**listprisms**
 
 Returns array of prism metadata:
 
@@ -111,25 +113,37 @@ Returns array of prism metadata:
    "prisms": [
       {
          "label": "band-prism",
-         "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-         "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
+         "version": "v0.0.1",
          "members": [
             {
                "name": "lead-singer",
                "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 5
+               "split": 5,
+               "outlay_msat": 0,
+               "id": 1
             },
             {
                "name": "drummer",
                "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 2
+               "split": 2,
+               "outlay_msat": 3000,
+               "id": 2
             },
             {
                "name": "guitarist",
                "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 3
+               "split": 3,
+               "outlay_msat": 2300,
+               "id": 3
             }
-         ]
+         ],
+         "offer": {
+            "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
+            "active": true,
+            "single_use": false,
+            "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
+            "used": false
+         }
       }
    ]
 }
@@ -137,7 +151,7 @@ Returns array of prism metadata:
 
 ### deleteprism
 
-**deleteprism offer_id**
+**deleteprism** _offer_id_
 
 When prisms are created, they get stored in the node's datastore with the offer id as the key.
 
@@ -145,30 +159,32 @@ _see `datastore`, `listdatastore`, and `deldatastore` from the [CLN docs](https:
 
 ### updateprism
 
-**updateprism offer_id members**
+**updateprism** *offer_id members[]*
 
 Replaces the array of members in a preexisting prism with the members array that gets passed.
 
 ## Testing and Experimenting
 
-The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the lightning repo.
+The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo.
 
 ### roygbiv-stack
 
-This project is a docker stack capable of deployging a bitcoin node along with any number of CLN nodes running on any network.
+This project is a docker stack capable of deploying a bitcoin node along with any number of CLN nodes running on any network.
 
 With the right flags and running on regtest you can spin up a lightning network of CLN nodes running the prism plugin.
 
-See the docs for more info.
+See the [docs](https://github.com/farscapian/roygbiv-stack/blob/main/README.md) for more info.
 
 ### startup_regtest
 
-There is a copy of this script in the testing dir along with some docs on the other scripts in there.
+There is a copy of this script in the [testing dir](https://github.com/daGoodenough/bolt12-prism/blob/main/testing/README.md) and some docs on the other scripts.
 
 ## Future Development
 
-- `updateprism` will be an available method for updating prism metadata while maintaining the same offer.
-
 - generalize the testing scripts
 
-- create a series of tests to make sure the prism isn't broken.
+- create unit tests using [`pyln-testing`](https://github.com/ElementsProject/lightning/tree/master/contrib/pyln-testing)
+
+- manage fees via the outlay prop
+
+- Create a threshold prop to set restrictions on payouts
