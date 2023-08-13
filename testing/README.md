@@ -2,6 +2,8 @@
 
 Make sure you have cln and bitcoin core installed.
 
+BOLT 12 is currently experimental. To use, you must enable `experimental-offers`
+
 Set path to your plugin in .testing.env
 
 ## Starting your network
@@ -18,7 +20,7 @@ That will give you access to a series of handy scripts.
 
 Make sure your bitcoind node is funded, and then run `./bootstrap_network.sh`
 
-That will fund all the nodes, connect them, and then open channels in the configuration necessary for creating prisms with 3 members payable by l1.
+That will fund all the nodes, connect them, and then open channels in the configuration necessary for creating prisms with 3 members payable by `l1`.
 
 ## Start/restart plugin
 
@@ -40,16 +42,14 @@ This will restart the plugin every time a file in the root dir changes
 
 `./create_prism.sh`
 
-This just creates a prism where l1 can pay l2's prism which pays out to l3, l4, and l5.
+This just creates a prism where `l1` can pay `l2`'s prism which pays out to `l3`, `l4`, and `l5`.
 
 ## Paying a prism
 
-Prisms are stored as BOLT 12 offers in the uncle Jim node.
+"Paying a prism" is equivalent to paying a BOLT 12 offer.
 
-This means "paying a prism" is equivalent to paying a BOLT 12 offer.
-
-1. l1 has to fetch an invoice from l2. See `fetchinvoice` in the CLN docs
-2. l1 pays that invoice. See `pay` in the CLN docs
+1. `l1` has to fetch an invoice from `l2`. See `fetchinvoice` in the CLN docs
+2. `l1` pays that invoice. See `pay` in the CLN docs
 
 When a payment is received, the node looks up in the datastore to see if a prism exists for that offer. Then it iterates through each member paying out their deserved amount.
 
@@ -61,9 +61,9 @@ I made the `update_prism.sh` script to more easily pass updates. You will need t
 
 ## Debugging
 
-There is a function in `prism-plugin.py` call `printout`.
+There is a function in `prism-plugin.py` called `printout`.
 
-Use this to log anything while testing to a file on your machine.
+Use this to log anything to a file on your machine.
 
 You can use to `watch -n 1 cat /tmp/plugin_out` to hot reload the file
 
