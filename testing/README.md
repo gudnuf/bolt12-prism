@@ -61,7 +61,7 @@ I made the `update_prism.sh` script to more easily pass updates. You will need t
 
 ## Debugging
 
-There is a function in `prism-plugin.py` called `printout`.
+There is a function in `prism.py` called `printout`.
 
 Use this to log anything to a file on your machine.
 

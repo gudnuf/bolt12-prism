@@ -41,15 +41,15 @@ There are 3 ways to start a CLN plugin...
 ### Add to Your Config
 Find your c-lightning config file and add
 
-`plugin=/path/to/prism-plugin.py`
+`plugin=/path/to/prism.py`
 
 ### Manually start the plugin
 
-`lightning-cli plugin start /path/to/prism-plugin.py`
+`lightning-cli plugin start /path/to/prism.py`
 
 ### Run on startup
 
-`lightningd --experimental-offers --plugin=/path/to/prism-plugin.py`
+`lightningd --experimental-offers --plugin=/path/to/prism.py`
 
 ## Using the plugin
 
