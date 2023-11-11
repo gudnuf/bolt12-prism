@@ -140,22 +140,41 @@ def updateprism(plugin, prism_id, members):
 
 
 
+@plugin.method("prism-listbindings")
+def list_bindings(plugin):
+    '''Lists all prism bindings.'''
+
+    datastore = plugin.rpc.listdatastore()["datastore"]
+    prism_bindings = [binding for binding in datastore if binding['key'][0].startswith('prismbind:')]
+
+    return prism_bindings
+
 
 @plugin.method("prism-bind")
-def bindprism(plugin, prism_id, type, invoice_label):
-    '''Binds a Prism to a BOLT12 Offer or BOLT11 invoice.'''
+def bindprism(plugin, prism_id, invoice_type, invoice_label):
+    '''Binds a Prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
     # the purpose of this API call is to record in the database an association between 
     # a prism, and either a BOLT11 invoice (invoice_ID) or BOLT12 Offer (offer_ID)
+    prism = None
     prism = showprism(prism_id)
 
-    if prism is not None:
-        return prism
+    if prism is None:
+        raise Exception(f"ERROR: the provided prism_id of '{prism_id}' was not found.")
+
+    types = [ "bolt11", "bolt12" ]
+    if invoice_type not in types:
+        raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+
+    key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
+
+    # add the binding to the data store. All the info is in the key; no payload needed.
+    plugin.rpc.datastore(key=key, mode="must-create")
 
 
 @plugin.method("prism-delete")
 def deleteprism(plugin, prism_id):
-    '''Deletes a BOLT12 prism.'''
+    '''Deletes a prism.'''
 
     return_value = prism_id
     try:
@@ -289,7 +308,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
         if "local_offer_id" in invoice:
             offer_id = invoice["local_offer_id"]
             is_bolt12 = true
-        else
+        else:
             is_bolt12 = false
 
 
