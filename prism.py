@@ -145,7 +145,11 @@ def list_bindings(plugin):
     '''Lists all prism bindings.'''
 
     datastore = plugin.rpc.listdatastore()["datastore"]
-    prism_bindings = [binding for binding in datastore if binding['key'][0].startswith('prismbind:')]
+    prism_bindings = [binding['key'][0] for binding in datastore if binding['key'][0].startswith('prismbind:')]
+
+    # bindings = []
+    # for record in prism_bindings["datastore"]:
+    #     bindings.append(str(record.get("key")[0]))
 
     return prism_bindings
 
@@ -169,7 +173,7 @@ def bindprism(plugin, prism_id, invoice_type, invoice_label):
     key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
 
     # add the binding to the data store. All the info is in the key; no payload needed.
-    plugin.rpc.datastore(key=key, mode="must-create")
+    plugin.rpc.datastore(key=key, string="", mode="must-create")
 
 
 @plugin.method("prism-delete")
