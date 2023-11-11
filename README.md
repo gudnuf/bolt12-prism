@@ -116,15 +116,15 @@ This command has a simpilar sytax as `prism-create`. It takes a new `members[]` 
 
 Running this command will delete a prism object from the data store. Note that you MUST delete any prism-bindings before the prism can be deleted.
 
-### `prism-pay prism_id amount_msat [label]`
-    Executes (pays-out) a prism.
+### `prism-pay prism_id amount_msat [label]` Executes (pays-out) a prism.
+
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some incoming payment.
 
 ### Bindings
 
-#### `prism-addbinding prism_id invoice_type invoice_label`
-    Binds a prism to a BOLT12 Offer or a BOLT11 invoice.
+By creating bindings, you can have a prism payout execute whenever a payment is received by your node. You can bind a prism to a BOLT12 offer, or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism is paid out.
 
-    Create a prism.
+#### `prism-addbinding prism_id invoice_type invoice_label`
 
 
 #### `prism-listbindings` 
