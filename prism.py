@@ -2,6 +2,7 @@
 import json
 import os
 import re
+from enum import Enum
 from math import floor, ceil
 from pyln.client import Plugin, RpcError, Millisatoshi
 import uuid
@@ -23,6 +24,24 @@ plugin = Plugin()
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
 bolt12Regex = re.compile(r'^ln([a-zA-Z0-9]{1,90})[0-9]+[munp]?[a-zA-Z0-9]+[0-9]+[munp]?[a-zA-Z0-9]*$')
+
+
+class PrismBinding:
+    def __init__(self, key):
+        parts = key.split(':')
+        if len(parts) != 4 or not key.startswith('prismbind:'):
+            raise ValueError("Invalid PrismBinding key format")
+
+        self.bind_type = parts[1]
+        self.invoice_label = parts[2]
+        self.prism_id = parts[3]
+
+    def to_json(self):
+        return {
+            'bind_type': self.bind_type,
+            'invoice_label': self.invoice_label,
+            'prism_id': self.prism_id
+        }
 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
@@ -118,7 +137,7 @@ def listprisms(plugin):
 
 @plugin.method("prism-update")
 def updateprism(plugin, prism_id, members):
-    '''Updates a Prism's members definition.'''
+    '''Update an existing prism.'''
     try:
 
         prism = createprism(prism_id, members)
@@ -145,22 +164,20 @@ def list_bindings(plugin):
     '''Lists all prism bindings.'''
 
     datastore = plugin.rpc.listdatastore()["datastore"]
-    prism_bindings = [binding['key'][0] for binding in datastore if binding['key'][0].startswith('prismbind:')]
+    prism_bindings = [PrismBinding(binding['key'][0]) for binding in datastore if binding['key'][0].startswith('prismbind:')]
 
-    # bindings = []
-    # for record in prism_bindings["datastore"]:
-    #     bindings.append(str(record.get("key")[0]))
+    json_data = json.dumps(prism_bindings)
+    json_dict = json.loads(json_data)
 
     return prism_bindings
 
 
-@plugin.method("prism-bind")
+@plugin.method("prism-addbinding")
 def bindprism(plugin, prism_id, invoice_type, invoice_label):
-    '''Binds a Prism to a BOLT12 Offer or a BOLT11 invoice.'''
+    '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
-    # the purpose of this API call is to record in the database an association between 
-    # a prism, and either a BOLT11 invoice (invoice_ID) or BOLT12 Offer (offer_ID)
-    prism = None
+    # the purpose of this method is to record in the database an association between 
+    # a prism, and either a BOLT11 invoice (invoice_ID) or BOLT12 Offer (offer_ID).
     prism = showprism(prism_id)
 
     if prism is None:
@@ -172,8 +189,23 @@ def bindprism(plugin, prism_id, invoice_type, invoice_label):
 
     key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
 
+    # TODO ensure the offer_id or invoice_id exists.
+
     # add the binding to the data store. All the info is in the key; no payload needed.
     plugin.rpc.datastore(key=key, string="", mode="must-create")
+    return key
+
+@plugin.method("prism-removebinding")
+def bindprism(plugin, prism_id, invoice_type, invoice_label):
+    '''Removes a prism binding.'''
+
+    existing_bindings = list_bindings(plugin)
+
+    key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
+
+    plugin.rpc.deldatastore(key)
+    existing_bindings = list_bindings(plugin)
+    return existing_bindings
 
 
 @plugin.method("prism-delete")
@@ -275,7 +307,7 @@ def prism_pay(prism_id, amount_msat, label=""):
 
                 # TODO update the OUTLAY!
 
-                #update_outlay(offer_id, member["id"], outlay_msats)
+                #update_outlay(prism_id, member["name"], outlay_msats)
 
             except RpcError as e:
                 update_outlay(offer_id, member["id"], outlay_msats)
@@ -315,6 +347,13 @@ def on_payment(plugin, invoice_payment, **kwargs):
         else:
             is_bolt12 = false
 
+        # since BOLT11 invoices are single-use, after payment, we can delete the prism binding for it.
+        if is_bolt12 is false:
+            printout(f"TODO need to delete the prism binding for this bolt11 invoice.")
+
+        # TODO if we're using a single-use BOLT12 offer, we can remove the prism binding.
+        if is_bolt12 is true:
+            printout(f"TODO need to delete the prism binding for this single-use bolt12 offer.")
 
         preimage = invoice_payment["preimage"]
         amount_msat = invoice_payment['msat'][:-4]
@@ -324,8 +363,6 @@ def on_payment(plugin, invoice_payment, **kwargs):
         printout(f"amount_msat:  {amount_msat}")
     except Exception as e:
         printout("Payment error: {}".format(e))
-
-
 
 
 
