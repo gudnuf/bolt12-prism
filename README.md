@@ -15,7 +15,7 @@ Some other projects that compliment this one are
 - [roygbiv.money](https://roygbiv.money) where you can experiment with prisms in regtest
 - [roygbiv.guide](https://roygbiv.guide) to learn more about prisms
 - [lnplay](https://github.com/farscapian/lnplay) which integrates the prism plugin
-- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend)
+- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend) helps you manage BOLT12 prisms. TODO hackaton idea: needs UI update to v2 Prisms.
 
 ## Getting Started
 
@@ -57,14 +57,14 @@ Find your c-lightning config file and add
 
 ### `prism-create` - Create a prism
 
-`prism-create -k members=members_json`
+Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The prism_id is optional. If left unspecified, a unique prism id starting with `prism-` will be assigned. Note that if you specify a `prism_id`, it MUST start with `prism-`.
 
 
 ```bash
 lightning-cli prism-create -k 'members=[{"name" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdxv522f7e8df9j8n5trwn6a4fmmhu3lmtzh9cesa04uq9u4n9p2x", "split": 1, "type":"bolt12"},{"name" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqv7cqnv99wjrhml7f3e60ratx3gtzmc94wj4nfgn3pd997ckg2m96", "split": 1, "type":"bolt12"},{"name" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0fx4u9gr7s0f0xtycjgdesv4ly70s5kq26zf40z5uyak6x553wj5", "split": 1, "type":"bolt12"}]
 ```
 
-Returns the the prism with a `prism_id` and default values populated:
+Returns the the following:
 
 ```
 {
@@ -100,7 +100,7 @@ Returns the the prism with a `prism_id` and default values populated:
 }
 ```
 
-### `prism-show prism_id` Show the details of a single prism.
+### `prism-show prism_id` Display a single prism definition.
 
 Running `prism-show prism-93457a69-7270-40e9-a179-cad80e4669ee` will display a single prism object having the specified ID.
 
@@ -110,15 +110,15 @@ This command returns a JSON array of all the prism objects that exist.
 
 ### `prism-update prism_id members` Update an existing prism
 
-This command has a simpilar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion.
+This command has a similar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion.
 
 ### `prism-delete prism_id` Deletes a prism
 
-Running this command will delete a prism object from the data store. Note that you MUST delete any prism-bindings before the prism can be deleted.
+Running this command will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted.
 
 ### `prism-pay prism_id amount_msat [label]` Executes (pays-out) a prism.
 
-When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some incoming payment.
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some incoming payment, e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive).
 
 ### Bindings
 
