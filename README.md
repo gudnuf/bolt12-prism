@@ -12,10 +12,9 @@ This started as the winning hackathon project at btc++ 2023 in Austin, Tx.
 
 Some other projects that compliment this one are
 
-- [roygbiv.money](https://roygbiv.money) where you can experiment with prisms in regtest
-- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms
+- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms.
 - [lnplay](https://github.com/farscapian/lnplay) which integrates the prism plugin
-- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend) helps you manage BOLT12 prisms. TODO hackaton idea: needs UI update to v2 Prisms.
+- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend) helps you manage BOLT12 prisms. TODO hackathon idea: needs UI update to v2 Prisms.
 
 ## Getting Started
 
@@ -61,7 +60,7 @@ Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The prism_id 
 
 
 ```bash
-lightning-cli prism-create -k 'members=[{"name" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdxv522f7e8df9j8n5trwn6a4fmmhu3lmtzh9cesa04uq9u4n9p2x", "split": 1, "type":"bolt12"},{"name" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqv7cqnv99wjrhml7f3e60ratx3gtzmc94wj4nfgn3pd997ckg2m96", "split": 1, "type":"bolt12"},{"name" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0fx4u9gr7s0f0xtycjgdesv4ly70s5kq26zf40z5uyak6x553wj5", "split": 1, "type":"bolt12"}]
+lightning-cli prism-create -k 'members=[{"name" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdxv522f7e8df9j8n5trwn6a4fmmhu3lmtzh9cesa04uq9u4n9p2x", "split": 1, "type":"bolt12"},{"name" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqv7cqnv99wjrhml7f3e60ratx3gtzmc94wj4nfgn3pd997ckg2m96", "split": 1, "type":"bolt12"},{"name" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0fx4u9gr7s0f0xtycjgdesv4ly70s5kq26zf40z5uyak6x553wj5", "split": 1, "type":"bolt12"}]'
 ```
 
 Returns the the following:
@@ -100,7 +99,7 @@ Returns the the following:
 }
 ```
 
-### `prism-show prism_id` Display a single prism definition.
+### `prism-show prism_id` Display a single prism.
 
 Running `prism-show prism-93457a69-7270-40e9-a179-cad80e4669ee` will display a single prism object having the specified ID.
 

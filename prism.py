@@ -48,11 +48,15 @@ def init(options, configuration, plugin, **kwargs):
     plugin.log("prism-api initialized")
 
 @plugin.method("prism-create")
-def createprism(plugin, members):
+def createprism(plugin, members, prism_id=""):
     '''Create a prism.'''
 
-    # generate an ID for this prism, we namespace the records with "prism-"
-    prism_id = f"prism-{str(uuid.uuid4())}"
+    if not prism_id:
+        # generate an ID for this prism, we namespace the records with "prism-"
+        prism_id = f"prism-{str(uuid.uuid4())}"
+    
+    if not prism_id.startswith("prism-"):
+        raise Exception("ERROR: the prism ID MUST start with 'prism-'.")
 
     # create a new prism object.
     prism = createprism(prism_id, members)
@@ -83,7 +87,7 @@ def createprism(prism_id, members):
     return prism
 
 @plugin.method("prism-show")
-def prismshow(plugin, prism_id):
+def showprism(plugin, prism_id):
     '''Show the details of a single prism.'''
     return showprism(prism_id)
 
@@ -196,7 +200,7 @@ def bindprism(plugin, prism_id, invoice_type, invoice_label):
     return key
 
 @plugin.method("prism-removebinding")
-def bindprism(plugin, prism_id, invoice_type, invoice_label):
+def remove_prism_binding(plugin, prism_id, invoice_type, invoice_label):
     '''Removes a prism binding.'''
 
     existing_bindings = list_bindings(plugin)
@@ -209,11 +213,13 @@ def bindprism(plugin, prism_id, invoice_type, invoice_label):
 
 
 @plugin.method("prism-delete")
-def deleteprism(plugin, prism_id):
+def delete_prism(plugin, prism_id):
     '''Deletes a prism.'''
 
     return_value = prism_id
     try:
+
+        # TODO; we can also delete all prism bindings.
 
         # TODO; before we delete, we should ensure it's not referenced in any bindings.
 
@@ -330,7 +336,6 @@ def pay(payment_type, destination, amount_msat):
 
     return payment_result
 
-    
 # ABOUT: First, we check the db to see if there are any bindings associated with 
 # the invoice payment.
 @plugin.subscribe("invoice_payment")
