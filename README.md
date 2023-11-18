@@ -34,7 +34,7 @@ Some other projects that compliment this one are
    }
    ```
 
-## Starting the Plugin
+### Starting the Plugin
 
 There are 3 ways to start a CLN plugin...
 
@@ -54,13 +54,12 @@ Find your c-lightning config file and add
 
 ## Using the plugin
 
-`prism-create` - Create a prism
+`prism-create members [prism_id]` - Create a prism
 
-Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The prism_id is optional. If left unspecified, a unique prism id starting with `prism-` will be assigned. Note that if you specify a `prism_id`, it MUST start with `prism-`.
-
+Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The `prism_id` is optional. If left unspecified, a unique prism id starting with `prism-` will be assigned. Note that if you specify a `prism_id`, it MUST start with `prism-`.
 
 ```bash
-lightning-cli prism-create -k 'members=[{"name" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdxv522f7e8df9j8n5trwn6a4fmmhu3lmtzh9cesa04uq9u4n9p2x", "split": 1, "type":"bolt12"},{"name" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqv7cqnv99wjrhml7f3e60ratx3gtzmc94wj4nfgn3pd997ckg2m96", "split": 1, "type":"bolt12"},{"name" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0fx4u9gr7s0f0xtycjgdesv4ly70s5kq26zf40z5uyak6x553wj5", "split": 1, "type":"bolt12"}]'
+lightning-cli prism-create -k 'members=[{"name" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"name" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"name" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]'
 ```
 
 Returns the the following:
@@ -120,36 +119,34 @@ Running this command will delete a prism object from the data store. Note that a
 
 `prism-executepayout prism_id amount_msat [label]` Executes a prism pays-out.
 
-When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some incoming payment, e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive).
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive).
 
 ## Bindings
 
-By creating bindings, you can have a prism payout execute whenever a payment is received by your node. You can bind a prism to a BOLT12 offer, or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism is paid out.
+By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer, or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism is paid out.
 
 `prism-bindingadd prism_id invoice_type invoice_label`
-
+    Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
 
 `prism-bindinglist` 
     Lists all prism bindings.
+
+```
+[
+   {
+      "bind_type": "bolt12",
+      "invoice_label": "1bfc9d585f186e0479a0648bd2983eab95c7c2a0b86c2f1564295a3067e1cf09",
+      "prism_id": "prism-127.0.0.1-prism_demo"
+   }
+]
+```
 
 `prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding.
 
 ## Testing and Experimenting
 
-The two ways I would recommend playing around with this plugin are the [lnplay](https://github.com/farscapian/lnplay) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo.
-
-### lnplay
-
-This project is a docker stack capable of deploying a bitcoin node along with any number of CLN nodes running on any network.
-
-With the right flags and running on regtest you can spin up a lightning network of CLN nodes running the prism plugin.
-
-See the [docs](https://github.com/farscapian/lnplay/blob/main/README.md) for more info.
-
-### startup_regtest
-
-There is a copy of this script in the [testing dir](https://github.com/daGoodenough/bolt12-prism/blob/main/testing/README.md) and some docs on the other scripts.
+Check out [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo or the copy in the [testing dir](https://github.com/daGoodenough/bolt12-prism/blob/main/testing/README.md) for local development.
 
 ## Future Development
 
