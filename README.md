@@ -8,7 +8,7 @@ A CLN plugin for creating and interacting with prisms. This plugin supports rece
 
 ## Background
 
-This started as the winning hackathon project at btc++ 2023 in Austin, Tx.
+This started as the winning hackathon project at [bitcoin++](https://btcpp.dev/) 2023 in Austin, Tx.
 
 Some other projects that compliment this one are
 
@@ -54,7 +54,7 @@ Find your c-lightning config file and add
 
 ## Using the plugin
 
-### `prism-create` - Create a prism
+`prism-create` - Create a prism
 
 Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The prism_id is optional. If left unspecified, a unique prism id starting with `prism-` will be assigned. Note that if you specify a `prism_id`, it MUST start with `prism-`.
 
@@ -67,69 +67,72 @@ Returns the the following:
 
 ```
 {
-   "prism_id": "prism-93457a69-7270-40e9-a179-cad80e4669ee",
+   "prism_id": "prism-127.0.0.1-prism_demo",
    "version": "v0.0.2",
    "sdf": "relative",
    "members": [
       {
          "name": "Lead-Singer",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdxv522f7e8df9j8n5trwn6a4fmmhu3lmtzh9cesa04uq9u4n9p2x",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss",
          "split": 1,
          "type": "bolt12",
          "outlay_msats": 0,
+         "fees_incurred_by": "remote",
          "threshold": 0
       },
       {
          "name": "Drummer",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqv7cqnv99wjrhml7f3e60ratx3gtzmc94wj4nfgn3pd997ckg2m96",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu",
          "split": 1,
          "type": "bolt12",
          "outlay_msats": 0,
+         "fees_incurred_by": "remote",
          "threshold": 0
       },
       {
          "name": "Guitarist",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0fx4u9gr7s0f0xtycjgdesv4ly70s5kq26zf40z5uyak6x553wj5",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw",
          "split": 1,
          "type": "bolt12",
          "outlay_msats": 0,
+         "fees_incurred_by": "remote",
          "threshold": 0
       }
    ]
 }
 ```
 
-### `prism-show prism_id` Display a single prism.
+`prism-show prism_id` Display a single prism.
 
 Running `prism-show prism-93457a69-7270-40e9-a179-cad80e4669ee` will display a single prism object having the specified ID.
 
-### `prism-list` - List all prisms
+`prism-list` - List all prisms
 
 This command returns a JSON array of all the prism objects that exist.
 
-### `prism-update prism_id members` Update an existing prism
+`prism-update prism_id members` Update an existing prism
 
 This command has a similar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion.
 
-### `prism-delete prism_id` Deletes a prism
+`prism-delete prism_id` Deletes a prism
 
 Running this command will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted.
 
-### `prism-pay prism_id amount_msat [label]` Executes (pays-out) a prism.
+`prism-executepayout prism_id amount_msat [label]` Executes a prism pays-out.
 
 When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some incoming payment, e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive).
 
-### Bindings
+## Bindings
 
 By creating bindings, you can have a prism payout execute whenever a payment is received by your node. You can bind a prism to a BOLT12 offer, or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism is paid out.
 
-#### `prism-addbinding prism_id invoice_type invoice_label`
+`prism-bindingadd prism_id invoice_type invoice_label`
 
 
-#### `prism-listbindings` 
+`prism-bindinglist` 
     Lists all prism bindings.
 
-#### `prism-removebinding prism_id invoice_type invoice_label`
+`prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding.
 
 ## Testing and Experimenting
