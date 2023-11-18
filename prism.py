@@ -163,7 +163,7 @@ def updateprism(plugin, prism_id, members):
 
 
 
-@plugin.method("prism-listbindings")
+@plugin.method("prism-bindinglist")
 def list_bindings(plugin):
     '''Lists all prism bindings.'''
 
@@ -176,7 +176,7 @@ def list_bindings(plugin):
     return prism_bindings
 
 
-@plugin.method("prism-addbinding")
+@plugin.method("prism-bindingadd")
 def bindprism(plugin, prism_id, invoice_type, invoice_label):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
@@ -199,7 +199,7 @@ def bindprism(plugin, prism_id, invoice_type, invoice_label):
     plugin.rpc.datastore(key=key, string="", mode="must-create")
     return key
 
-@plugin.method("prism-removebinding")
+@plugin.method("prism-bindingremove")
 def remove_prism_binding(plugin, prism_id, invoice_type, invoice_label):
     '''Removes a prism binding.'''
 
@@ -237,7 +237,6 @@ def validate_members(members):
     if not isinstance(members, list):
         raise ValueError("Members must be a list.")
 
-    
     for member in members:
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
@@ -268,6 +267,7 @@ def validate_members(members):
             
         # next, let's ensure the Member definition has the default fields.
         member['outlay_msats'] = member.get('outlay_msats', 0)
+        member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
         member['threshold'] = member.get('threshold', 0)
 
 
