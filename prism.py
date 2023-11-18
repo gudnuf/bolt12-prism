@@ -267,14 +267,18 @@ def validate_members(members):
             
         # next, let's ensure the Member definition has the default fields.
         member['outlay_msats'] = member.get('outlay_msats', 0)
+
+        # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
+
+        # TODO 
         member['threshold'] = member.get('threshold', 0)
 
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
 
-@plugin.method("prism-pay")
+@plugin.method("prism-executepayout")
 def prism_pay(prism_id, amount_msat, label=""):
     '''Executes (pays-out) a prism.'''
 
@@ -282,7 +286,7 @@ def prism_pay(prism_id, amount_msat, label=""):
     # that way we can immediately record/persist 
 
 
-    # note, running 'prism-pay' with amount_msat=0 will result in outlays being paid out (assuming the threshold has been met)
+    # note, running 'prism-executepayout' with amount_msat=0 will result in outlays being paid out (assuming the threshold has been met)
     if amount_msat < 0:
         raise Exception("ERROR: amount_msat MUST BE greater than or equal to zero.")
 
