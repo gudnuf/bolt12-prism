@@ -45,6 +45,10 @@ class PrismBinding:
 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
+
+    # TODO add minimum version check.
+    # TODO migrate legacy prisms and bring them up-to-date with this version if necessary
+
     plugin.log("prism-api initialized")
 
 @plugin.method("prism-create")
@@ -220,8 +224,6 @@ def delete_prism(plugin, prism_id):
     try:
 
         # TODO; we can also delete all prism bindings.
-
-        # TODO; before we delete, we should ensure it's not referenced in any bindings.
 
         plugin.rpc.deldatastore(prism_id)
     except RpcError as e:
