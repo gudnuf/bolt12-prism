@@ -264,7 +264,6 @@ def validate_members(members):
             raise ValueError(
                 "Member 'split' must be an integer between 1 and 1000")
 
-            
         # next, let's ensure the Member definition has the default fields.
         member['outlay_msats'] = member.get('outlay_msats', 0)
 
@@ -279,20 +278,24 @@ def validate_members(members):
 
 
 @plugin.method("prism-executepayout")
-def prism_pay(prism_id, amount_msat, label=""):
+def prism_execute(prism_id, amount_msat=0, label=""):
     '''Executes (pays-out) a prism.'''
+
+    if not isinstance(amount_msat, int):
+        plugin.log(f"ERROR: amount_msat is the incorrect type.")
+        raise Exception("ERROR: amount_msat is the incorrect type.")
+
+    # note, running 'prism-executepayout' with amount_msat=0 will result in outlays being paid out (assuming the threshold has been met)
+    #if amount_msat < 0:
+    #    raise Exception("ERROR: amount_msat MUST BE greater than or equal to zero.")
 
     # TODO; first thing we should do here probably is update the Prism with new outlay values.
     # that way we can immediately record/persist 
-
-
-    # note, running 'prism-executepayout' with amount_msat=0 will result in outlays being paid out (assuming the threshold has been met)
-    if amount_msat < 0:
-        raise Exception("ERROR: amount_msat MUST BE greater than or equal to zero.")
+    plugin.log(f"{amount_msat}")
+    plugin.log(f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
 
     prism = showprism(prism_id)
     prism_members = None
-
     if prism is not None:
         prism_members = prism["members"]
 
@@ -306,17 +309,15 @@ def prism_pay(prism_id, amount_msat, label=""):
             # iterate over each prism member and send them their split
             # msat comes as "5000msat"
             deserved_msats = Millisatoshi(floor((member['split'] / total_split) * amount_msat))
-
             outlay_msats = deserved_msats + Millisatoshi(member["outlay_msats"])
-        
-            plugin.log(f"outlay_msats: {outlay_msats}")
 
             try:
                 payment = pay(member["type"], member["destination"], outlay_msats)
+                
+                # TODO if payment successful, then subtract the outlay, depending on who incurs fees.
                 outlay_msats -= payment["amount_sent_msat"]
 
                 # TODO update the OUTLAY!
-
                 #update_outlay(prism_id, member["name"], outlay_msats)
 
             except RpcError as e:
@@ -344,35 +345,46 @@ def pay(payment_type, destination, amount_msat):
 # the invoice payment.
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
+    
+    plugin.log(f"Got into on_payment for plugin")
+
     try:
         payment_label = invoice_payment["label"]
+        plugin.log(f"payment_label: {payment_label}")
+
         invoice = plugin.rpc.listinvoices(payment_label)
+        bind_type = "bolt11"
         offer_id = None
-        is_bolt12 = false
 
         if "local_offer_id" in invoice:
             offer_id = invoice["local_offer_id"]
             is_bolt12 = true
         else:
-            is_bolt12 = false
-
-        # since BOLT11 invoices are single-use, after payment, we can delete the prism binding for it.
-        if is_bolt12 is false:
-            printout(f"TODO need to delete the prism binding for this bolt11 invoice.")
-
-        # TODO if we're using a single-use BOLT12 offer, we can remove the prism binding.
-        if is_bolt12 is true:
-            printout(f"TODO need to delete the prism binding for this single-use bolt12 offer.")
+            bind_type = "bolt12"
 
         preimage = invoice_payment["preimage"]
         amount_msat = invoice_payment['msat'][:-4]
 
-        printout(f"payment_label:  {payment_label}")
-        printout(f"preimage:  {preimage}")
-        printout(f"amount_msat:  {amount_msat}")
+        plugin.log(f"payment_label:  {payment_label}")
+        plugin.log(f"preimage:  {preimage}")
+        plugin.log(f"amount_msat:  {amount_msat}")
+
+        # so the next step is to get the prism bindings and see if this payment
+        # should be acted upon (i.e., this incoming payment has one or more prisms bound to it.)
+        bindings = list_bindings(plugin)
+
+        prisms_to_execute = [binding.prism_id for binding in bindings]
+
+        # convert the prism object to JSON and return.
+        #json_data = json.dumps(prisms_to_execute)
+        #json_dict = json.loads(json_data)
+
+        #printout(str(json_dict))
+        for prism_id in prisms_to_execute:
+            prism_execute(prism_id, int(amount_msat), payment_label)
+
     except Exception as e:
         printout("Payment error: {}".format(e))
-
 
 
 # def update_member(offer_id, member_id, member):
