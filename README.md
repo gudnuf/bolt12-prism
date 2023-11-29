@@ -117,9 +117,9 @@ This command has a similar sytax as `prism-create`. It takes a new `members[]` j
 
 Running this command will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted.
 
-`prism-executepayout prism_id amount_msat [label]` Executes a prism pays-out.
+`prism-executepayout prism_id amount_msat [label]` Executes a prism pay-out.
 
-When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive).
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the `label` paramemter to associate this payout to some external `id`.
 
 ## Bindings
 
@@ -157,3 +157,8 @@ Check out [startup_regtest](https://github.com/ElementsProject/lightning/blob/ma
 - manage fees via the outlay prop
 
 - Create a threshold prop to set restrictions on payouts
+
+
+# TODO
+
+* Remove the "type" field from the members JSON and INFER (from regex) whether the destination is a keysend or BOLT12.
