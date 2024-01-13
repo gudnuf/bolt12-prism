@@ -75,7 +75,7 @@ Returns the the following:
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss",
          "split": 1,
          "type": "bolt12",
-         "outlay_msats": 0,
+         "outlay_msat": 0,
          "fees_incurred_by": "remote",
          "threshold": 0
       },
@@ -84,7 +84,7 @@ Returns the the following:
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu",
          "split": 1,
          "type": "bolt12",
-         "outlay_msats": 0,
+         "outlay_msat": 0,
          "fees_incurred_by": "remote",
          "threshold": 0
       },
@@ -93,7 +93,7 @@ Returns the the following:
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw",
          "split": 1,
          "type": "bolt12",
-         "outlay_msats": 0,
+         "outlay_msat": 0,
          "fees_incurred_by": "remote",
          "threshold": 0
       }

@@ -267,7 +267,7 @@ def validate_members(members):
                 "Member 'split' must be an integer between 1 and 1000")
 
         # next, let's ensure the Member definition has the default fields.
-        member['outlay_msats'] = member.get('outlay_msats', 0)
+        member['outlay_msat'] = member.get('outlay_msat', 0)
 
         # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
@@ -311,21 +311,21 @@ def prism_execute(prism_id, amount_msat=0, label=""):
             # iterate over each prism member and send them their split
             # msat comes as "5000msat"
             deserved_msats = Millisatoshi(floor((member['split'] / total_split) * amount_msat))
-            outlay_msats = deserved_msats + Millisatoshi(member["outlay_msats"])
+            outlay_msat = deserved_msats + Millisatoshi(member["outlay_msat"])
 
             try:
-                payment = pay(member["type"], member["destination"], outlay_msats)
+                payment = pay(member["type"], member["destination"], outlay_msat)
                 
                 # TODO if payment successful, then subtract the outlay, depending on who incurs fees.
-                outlay_msats -= payment["amount_sent_msat"]
+                outlay_msat -= payment["amount_sent_msat"]
 
                 # TODO update the OUTLAY!
-                #update_outlay(prism_id, member["name"], outlay_msats)
+                #update_outlay(prism_id, member["name"], outlay_msat)
 
             except RpcError as e:
-                update_outlay(offer_id, member["id"], outlay_msats)
+                update_outlay(offer_id, member["id"], outlay_msat)
 
-                error = create_payment_error(member, member["outlay_msats"], e.error, offer_id)
+                error = create_payment_error(member, member["outlay_msat"], e.error, offer_id)
                 log_payments(error)
 
 def pay(payment_type, destination, amount_msat):
@@ -424,7 +424,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
 def update_outlay(offer_id, member_id, amount_msat):
     member = get_member_json(offer_id, member_id)
-    member["outlay_msats"] = int(amount_msat)
+    member["outlay_msat"] = int(amount_msat)
 
     update_member(offer_id, member_id, member)
 
@@ -437,15 +437,15 @@ def log_payments(payment_result):
         log.write("\n\n")
 
 
-def create_payment_error(member, outlay_msats, rpc_error, prism_id):
+def create_payment_error(member, outlay_msat, rpc_error, prism_id):
     error_message = "Failed to pay {} to {}".format(
-        outlay_msats, member["name"])
+        outlay_msat, member["name"])
     time = "{}".format(datetime.utcnow())
 
     return {
         "time": time,
         "message": error_message,
-        "amount": outlay_msats,
+        "amount": outlay_msat,
         "member_id": member["id"],
         "prism_id": prism_id,
         "rpc_error": rpc_error,
