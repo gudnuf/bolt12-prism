@@ -51,22 +51,25 @@ def init(options, configuration, plugin, **kwargs):
 
     plugin.log("prism-api initialized")
 
+
+
+
+
+
 @plugin.method("prism-create")
 def createprism(plugin, members, prism_id=""):
     '''Create a prism.'''
 
     if not prism_id:
         # generate an ID for this prism, we namespace the records with "prism-"
-        prism_id = f"prism-{str(uuid.uuid4())}"
-    
-    if not prism_id.startswith("prism-"):
-        raise Exception("ERROR: the prism ID MUST start with 'prism-'.")
+        prism_id = f"{str(uuid.uuid4())}"
 
     # create a new prism object.
     prism = createprism(prism_id, members)
 
     # add the prism info to datastore with the prism_id
-    plugin.rpc.datastore(key=prism_id, string=json.dumps(prism))
+    prism_key = [ "prism", "prism", prism_id ]
+    plugin.rpc.datastore(key=prism_key, string=json.dumps(prism), mode="create-or-replace")
 
     # convert the prism object to JSON for return.
     json_data = json.dumps(prism)
@@ -96,48 +99,32 @@ def showprism(plugin, prism_id):
     return showprism(prism_id)
 
 def showprism(prism_id):
-    try:
-        prism_datastore_record = None
-        prism_datastore = plugin.rpc.listdatastore(prism_id)
 
-        for record in prism_datastore["datastore"]:
-            if record.get("key")[0] == prism_id:
-                prism_datastore_record = record
-                break
+    prism_strings = None
 
-        if prism_datastore_record is not None:
+    prism_key = [ "prism", "prism", prism_id ]
+    prism_record = plugin.rpc.listdatastore(key=prism_key)["datastore"]
+    prism_strings = json.loads(prism_record[0]['string'])
 
-            # Extract the 'string' property and parse it as JSON
-            prism_string = json.loads(prism_datastore_record['string'])
 
-            # convert the prism object to JSON for return.
-            json_data = json.dumps(prism_string)
-            json_dict = json.loads(json_data)
-        else:
-            raise Exception(f"Prism with id {prism_id} not found.")
+    if prism_strings is None:
+        raise Exception(f"Prism with id {prism_id} not found.")
 
-    except RpcError as e:
-        plugin.log(e)
-        return e
-
-    return json_dict
+    return prism_strings
 
 @plugin.method("prism-list")
 def listprisms(plugin):
     '''List all prisms.'''
     try:
 
-        datastore = plugin.rpc.listdatastore()["datastore"]
-        prism_records = [record for record in datastore if record['key'][0].startswith('prism-')]
+        # add the prism info to datastore with the prism_id
+        prism_key = [ "prism", "prism" ]
+        prism_records = plugin.rpc.listdatastore(key=prism_key)["datastore"]
 
         # Extract the 'string' property and parse it as JSON
         prism_strings = [json.loads(record['string']) for record in prism_records]
 
-        # convert the prism object to JSON and return.
-        json_data = json.dumps(prism_strings)
-        json_dict = json.loads(json_data)
-
-        return json_dict
+        return prism_strings
 
     except RpcError as e:
         plugin.log(e)
@@ -154,10 +141,12 @@ def updateprism(plugin, prism_id, members):
         json_data = json.dumps(prism)
         json_dict = json.loads(json_data)
 
-        if len(plugin.rpc.listdatastore(prism_id)["datastore"]) == 0:
-            raise ValueError(f"A prism with with ID of {prism_id} does not exist")
+        prism_key = [ "prism", "prism", prism_id ]
+        if len(plugin.rpc.listdatastore(key=prism_key)) == 0:
+            raise ValueError(f"A prism with with ID {prism_id} does not exist")
 
-        plugin.rpc.datastore(key=prism_id, string=json.dumps(json_dict), mode="must-replace")
+        prism_key = [ "prism", "prism", prism_id ]
+        plugin.rpc.datastore(key=prism_key, string=json_data, mode="create-or-replace")
 
         return json_dict
 
@@ -166,70 +155,214 @@ def updateprism(plugin, prism_id, members):
         return e
 
 
+class PrismBinding:
+    def __init__(self, offer_id, prism_ids):
+        self.offer_id = offer_id
+        self.prism_ids = prism_ids
+
+    def to_dict(self):
+        return {"offer_id": self.offer_id, "prism_ids": self.prism_ids}
+
+    def to_json(self):
+        rtnVal = {
+            "offer_id": self.offer_id,
+            "prisms": self.prism_ids
+        }
+
+        return rtnVal
+
+
 
 @plugin.method("prism-bindinglist")
-def list_bindings(plugin):
+def list_bindings(plugin, bolt_version="bolt12"):
     '''Lists all prism bindings.'''
 
-    datastore = plugin.rpc.listdatastore()["datastore"]
-    prism_bindings = [PrismBinding(binding['key'][0]) for binding in datastore if binding['key'][0].startswith('prismbind:')]
-
-    json_data = json.dumps(prism_bindings)
-    json_dict = json.loads(json_data)
-
-    return prism_bindings
-
-
-@plugin.method("prism-bindingadd")
-def bindprism(plugin, prism_id, invoice_type, invoice_label):
-    '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
-
-    # the purpose of this method is to record in the database an association between 
-    # a prism, and either a BOLT11 invoice (invoice_ID) or BOLT12 Offer (offer_ID).
-    prism = showprism(prism_id)
-
-    if prism is None:
-        raise Exception(f"ERROR: the provided prism_id of '{prism_id}' was not found.")
-
     types = [ "bolt11", "bolt12" ]
-    if invoice_type not in types:
+    if bolt_version not in types:
         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
+    prism_binding_key = [ "prism", "bind", bolt_version ]
+    prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
 
-    # TODO ensure the offer_id or invoice_id exists.
+    #plugin.log(f"prism_bindings: {prism_bindings}")
 
-    # add the binding to the data store. All the info is in the key; no payload needed.
-    plugin.rpc.datastore(key=key, string="", mode="must-create")
-    return key
+    # Extract the 'string' property and parse it as JSONa
+    prism_binding_objects = []
+
+    for binding in prism_bindings:
+        prism_binding = PrismBinding(binding['key'][3], list(json.loads(binding['string'])))
+        prism_binding_objects.append(prism_binding)
+
+    #plugin.log(f"prism_binding_objects: {prism_binding_objects}")
+
+    return_object = {
+        "bolt12_bindings": prism_binding_objects }
+
+    return return_object
+
+@plugin.method("prism-bindingshow")
+def get_binding(plugin, prism_id, bolt_version="bolt12"):
+    '''Show the bindings of a specific prism.'''
+
+    plugin.log(f"running get_binding")
+
+    prism_binding = None
+
+    # so, need to pull all prism binding records and iterate over each one
+    # to see if it contains the current prism_id is the content of the record.
+    prism_records_key = [ "prism", "bind", bolt_version ]
+    plugin.log(f"prism_records_key: {prism_records_key}")
+
+    prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+
+    relevant_offer_ids_for_prism = []
+    relevant_offer_ids_for_prism_bolt11 = []
+
+    for binding_record in prism_binding_records:
+        list_of_prisms_in_binding_record = json.dumps(binding_record["string"])
+        #plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
+        
+        if prism_id in list_of_prisms_in_binding_record:
+            offer_id = binding_record["key"][3]
+            relevant_offer_ids_for_prism.append(offer_id)
+
+    return_object = {
+        "prism_id": prism_id,
+        "bolt": bolt_version,
+        "offer_ids": relevant_offer_ids_for_prism }
+
+    return return_object
+
+
+# in this method, we maintain two sets of records, fbind and rbind. 
+# fbind records are a one-to-many that maps a particular bolt12 offer or bolt11 invoice
+# to a list of prism ids. This is used when an invoice/offer is paid; the code
+# can go look up all the prism_ids that should be executed when a particular offer/invoice is paid
+
+# the rbind maps maintains a list of offer/invoice ids for a specific prism_id.
+# this allows for the bindingshow method, which will show you a list of offer/invoice IDs that are
+# currently bound to a specific prism_id.
+@plugin.method("prism-bindingadd")
+def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
+    '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
+
+    dbmode="must-create"
+
+    types = [ "bolt11", "bolt12" ]
+    if bolt_version not in types:
+        raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+
+    # ensure the offer/invoice exists
+    if bolt_version == "bolt12":
+        offer = plugin.rpc.listoffers(offer_id)
+
+        if len(offer) == 0:
+            raise Exception("ERROR: the bolt12 offer does not exist!")
+
+    elif bolt_version == "bolt11":
+        invoice = plugin.rpc.listinvoices(offer_id)
+
+        if invoice is None:
+            raise Exception("ERROR: the bolt11 invoice does not exist.")
+
+    # first we need to see if there are any existing binding records for this prism_id/invoice_type
+    prism_binding_key = [ "prism", "bind", bolt_version, offer_id ]
+    plugin.log(f"binding_key: {prism_binding_key}")
+
+    forward_binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+    list_of_prism_ids = []
+
+    if len(forward_binding_record) > 0:
+        # oh, the record already exists. If if s
+        dbmode = "must-replace"
+        plugin.log(f"forward_binding_record: {forward_binding_record[0]['string']}")
+        list_of_prism_ids = json.loads(forward_binding_record[0]["string"])
+        plugin.log(f"list_of_prism_ids: {list_of_prism_ids}")
+      
+    # add the new prism too. 
+    list_of_prism_ids.append(prism_id)
+
+    # save the record
+    val = plugin.rpc.datastore(key=prism_binding_key, string=json.dumps(list_of_prism_ids), mode=dbmode)
+
+
+    response = {
+        "status": dbmode,
+        "offer_id": offer_id,
+        "prism_id": prism_id,
+        "prism_binding_key": prism_binding_key }
+
+
+    return response
 
 @plugin.method("prism-bindingremove")
-def remove_prism_binding(plugin, prism_id, invoice_type, invoice_label):
+def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
     '''Removes a prism binding.'''
 
-    existing_bindings = list_bindings(plugin)
+    plugin.log(f"in prism-bindingremove")
 
-    key = f"prismbind:{invoice_type}:{invoice_label}:{prism_id}"
+    dbmode = "must-replace"
 
-    plugin.rpc.deldatastore(key)
-    existing_bindings = list_bindings(plugin)
-    return existing_bindings
+    types = [ "bolt11", "bolt12" ]
+    if bolt_version not in types:
+        raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
+    # first we need to see if there are any existing binding records for this prism_id/invoice_type
+    prism_binding_key = [ "prism", "bind", bolt_version, offer_id ]
+    plugin.log(f"binding_key: {prism_binding_key}")
 
-@plugin.method("prism-delete")
-def delete_prism(plugin, prism_id):
-    '''Deletes a prism.'''
+    binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
 
-    return_value = prism_id
-    try:
+    list_of_prism_ids = []
 
-        # TODO; we can also delete all prism bindings.
+    if len(binding_record) > 0:
+        # oh, the record already exists. If if s
+        list_of_prism_ids = json.loads(binding_record[0]["string"])
+        list_of_prism_ids.remove(prism_id)
+        dbmode = "must-replace"
+        plugin.log(f"binding_record: {binding_record[0]['string']}")
+        list_of_prism_ids = json.loads(binding_record[0]["string"])
+        plugin.log(f"list_of_prism_ids: {list_of_prism_ids}")
 
-        plugin.rpc.deldatastore(prism_id)
-    except RpcError as e:
-        raise Exception(f"Prism with ID {prism_id} does not exist.")
+        if prism_id in list_of_prism_ids:
+            list_of_prism_ids.remove(prism_id)
+    else:
+        raise Exception(f"Could not find any binding records for {bolt_version} {offer_id}")
 
-    return return_value
+    status_indicator = None
+
+    # we delete the entire database entry if there are no prisms associated with it.
+    if len(list_of_prism_ids) == 0:
+        status_indicator = "deleted-key"
+        plugin.rpc.deldatastore(key=prism_binding_key)
+
+    else:
+        status_indicator = "updated-key"
+        # we need to update the record now.
+        plugin.rpc.datastore(key=prism_binding_key, string=json.dumps(list_of_prism_ids), mode=dbmode)
+
+    response = {
+        "status": status_indicator,
+        "offer_id": offer_id,
+        "prism_id": prism_id,
+        "prism_binding_key": prism_binding_key }
+
+    return response
+
+# @plugin.method("prism-delete")
+# def delete_prism(plugin, prism_id):
+#     '''Deletes a prism.'''
+
+#     return_value = prism_id
+#     try:
+
+#         # TODO; we can also delete all prism bindings.
+
+#         plugin.rpc.deldatastore(prism_id)
+#     except RpcError as e:
+#         raise Exception(f"Prism with ID {prism_id} does not exist.")
+
+#     return return_value
 
 
 def validate_members(members):
@@ -278,7 +411,6 @@ def validate_members(members):
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
-
 @plugin.method("prism-executepayout")
 def prism_execute(prism_id, amount_msat=0, label=""):
     '''Executes (pays-out) a prism.'''
@@ -286,10 +418,6 @@ def prism_execute(prism_id, amount_msat=0, label=""):
     if not isinstance(amount_msat, int):
         plugin.log(f"ERROR: amount_msat is the incorrect type.")
         raise Exception("ERROR: amount_msat is the incorrect type.")
-
-    # note, running 'prism-executepayout' with amount_msat=0 will result in outlays being paid out (assuming the threshold has been met)
-    #if amount_msat < 0:
-    #    raise Exception("ERROR: amount_msat MUST BE greater than or equal to zero.")
 
     # TODO; first thing we should do here probably is update the Prism with new outlay values.
     # that way we can immediately record/persist 
@@ -352,30 +480,28 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
     try:
         payment_label = invoice_payment["label"]
-        plugin.log(f"payment_label: {payment_label}")
-
         invoice = plugin.rpc.listinvoices(payment_label)
         bind_type = "bolt11"
         offer_id = None
 
         if "local_offer_id" in invoice:
             offer_id = invoice["local_offer_id"]
-            is_bolt12 = true
-        else:
             bind_type = "bolt12"
 
-        preimage = invoice_payment["preimage"]
         amount_msat = invoice_payment['msat'][:-4]
-
         plugin.log(f"payment_label:  {payment_label}")
-        plugin.log(f"preimage:  {preimage}")
         plugin.log(f"amount_msat:  {amount_msat}")
 
         # so the next step is to get the prism bindings and see if this payment
         # should be acted upon (i.e., this incoming payment has one or more prisms bound to it.)
-        bindings = list_bindings(plugin)
+        binding = get_binding(plugin, offer_id, bind_type)
 
-        prisms_to_execute = [binding.prism_id for binding in bindings]
+        if binding is not None:
+            plugin.log(f"binding from get_binding:  {binding}")
+        else:
+            plugin.log(f"ERROR: could not find the specific binding.")
+
+        #prisms_to_execute = [binding.prism_id for binding in bindings]
 
         # convert the prism object to JSON and return.
         #json_data = json.dumps(prisms_to_execute)
@@ -387,40 +513,6 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
     except Exception as e:
         printout("Payment error: {}".format(e))
-
-
-# def update_member(offer_id, member_id, member):
-#     try:
-#         prism = get_prism_json()["prisms"][offer_id]
-
-#         members = prism["members"]
-
-#         for i, old_member in enumerate(members):
-#             if old_member["id"] == member_id:
-#                 members[i] = member
-
-#         prism["members"] = members
-
-#         prism_string = json.dumps(prism)
-
-#         plugin.rpc.datastore(
-#             key=offer_id, string=prism_string, mode="must-replace")
-#     except RpcError as e:
-#         plugin.log(e)
-
-
-# def get_member_json(offer_id, member_id):
-#     prism = get_prism_json()["prisms"][offer_id]
-
-#     members = prism["members"]
-
-#     for member in members:
-#         if member["id"] == member_id:
-#             member = member
-#             break
-
-#     return member
-
 
 def update_outlay(offer_id, member_id, amount_msat):
     member = get_member_json(offer_id, member_id)
@@ -452,28 +544,28 @@ def create_payment_error(member, outlay_msat, rpc_error, prism_id):
     }
 
 
-def create_payment_result(member, payment, error=None, owe="0"):
-    if error:
-        result = {
-            "destination": member["destination"],
-            "type": member.get("type", "bolt12"),
-            "amount_msat": "",
-            "amount_sent_msat": "",
-            "status": "error",
-            "created_at": "",
-            "error_message": error,
-        }
-    else:
-        result = {
-            "destination": member["destination"],
-            "type": member.get("type", "bolt12"),
-            "amount_msat": payment["amount_msat"],
-            "amount_sent_msat": payment["amount_sent_msat"],
-            "status": payment["status"],
-            "created_at": datetime.fromtimestamp(payment["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
-            "error_message": ""
-        }
-    return result
+# def create_payment_result(member, payment, error=None, owe="0"):
+#     if error:
+#         result = {
+#             "destination": member["destination"],
+#             "type": member.get("type", "bolt12"),
+#             "amount_msat": "",
+#             "amount_sent_msat": "",
+#             "status": "error",
+#             "created_at": "",
+#             "error_message": error,
+#         }
+#     else:
+#         result = {
+#             "destination": member["destination"],
+#             "type": member.get("type", "bolt12"),
+#             "amount_msat": payment["amount_msat"],
+#             "amount_sent_msat": payment["amount_sent_msat"],
+#             "status": payment["status"],
+#             "created_at": datetime.fromtimestamp(payment["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
+#             "error_message": ""
+#         }
+#     return result
 
 
 plugin.run()  # Run our plugin
