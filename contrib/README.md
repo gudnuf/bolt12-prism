@@ -1,20 +1,38 @@
-# Testing and Experimenting
+# Contributing
 
-Make sure you have cln and bitcoin core installed.
+## Running the dev environemnt
 
-BOLT 12 is currently experimental. To use, you must enable `experimental-offers`
+### Get Nix
 
-Set path to your plugin in .testing.env
+This project is nixified, so first make sure you have [nix installed](https://nixos.org/download) and [experimental features](https://nixos.wiki/wiki/Nix_command) turned on so that you can use the `nix develop` command.
 
-## Starting your network
+Once nix is installed, clone the repo and inside the project directory run:
 
-`source ./startup_regtest.sh`
+```
+nix develop
+```
 
-That will give you access to a series of handy scripts.
+The first time you run this expect to wait for everthing to download/build.
+
+Now, you have **bitcoin and lightning nodes**, all the **required packages**, and **shell variables** defined!
+
+### Start, fund, and connect your nodes
+
+#### Start nodes in regtest
+
+Source the [`startup_regtest.sh`](./startup_regtest.sh) script and then start 2 nodes.
+
+```
+source ./startup_regtest.sh
+```
+
+That will give you access to a series of handy scripts. One starts your nodes:
 
 **NOTE**: Most of these scripts are hardcoded to work with prisms in a 5 node network
 
-`start_ln 5` will create 5 lightning nodes.
+```
+start_ln 5 #creates a 5 node network
+```
 
 ## Prism network configuration
 
@@ -29,8 +47,6 @@ That will fund all the nodes, connect them, and then open channels in the config
 NODE_NUM is an optional argument that specifies which node to start the prism. Defaults to `NODE_NUM=2`.
 
 Make sure the plugin path is correctly defined in the .testing.env file.
-
-This script assumes you are using the `startup_regtest` script which places each node in the `/tmp` dir.
 
 #### NOTE: A handy trick is to use:
 

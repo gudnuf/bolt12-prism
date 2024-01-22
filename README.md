@@ -144,9 +144,9 @@ By creating bindings, you can have a prism payout execute whenever a payment is 
 `prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding.
 
-## Testing and Experimenting
+## Contribing
 
-Check out [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo or the copy in the [testing dir](https://github.com/daGoodenough/bolt12-prism/blob/main/testing/README.md) for local development.
+There is a copy of the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo [contrib dir](./contrib/) for local development.
 
 ## Future Development
 
