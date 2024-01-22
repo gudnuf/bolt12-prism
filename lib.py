@@ -5,6 +5,7 @@ import os
 import uuid
 import json
 
+# TODO: find a way to define this dynamically or decide that doesn't make sense to do
 prism_plugin_version = "v0.0.2"
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
@@ -93,9 +94,11 @@ class Member:
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
+# TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
 class Prism:
-    def __init__(self, members: list | None = None, prism_id: str = None, prism_dict=None):
+    def __init__(self, members: List[Member] | None = None, prism_id: str = None, prism_dict=None):
         if prism_dict:
+            # TODO: validate the prism_dict
             self.id = prism_dict.get('prism_id')  
             self.version = prism_dict.get('version')  
             self.sdf = prism_dict.get('sdf')  
