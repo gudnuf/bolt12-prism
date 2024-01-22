@@ -1,5 +1,6 @@
 from typing import List
 import re
+import os
 import uuid
 import json
 
@@ -7,6 +8,16 @@ prism_plugin_version = "v0.0.2"
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
 bolt12Regex = re.compile(r'^ln([a-zA-Z0-9]{1,90})[0-9]+[munp]?[a-zA-Z0-9]+[0-9]+[munp]?[a-zA-Z0-9]*$')
+
+plugin_out = "/tmp/plugin_out"
+if os.path.isfile(plugin_out):
+    os.remove(plugin_out)
+
+# use this for debugging
+def printout(s):
+    with open(plugin_out, "a") as output:
+        output.write(s)
+        output.write('\n\n')
 
 class Member:
     def __init__(self, member):
