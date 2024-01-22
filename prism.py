@@ -8,6 +8,7 @@ from lib import Prism, Member, pubkeyRegex, bolt12Regex
 
 plugin = Plugin()
 
+# TODO: remove this, there are two instances of the class
 class PrismBinding:
     def __init__(self, key):
         parts = key.split(':')
@@ -42,6 +43,8 @@ def createprism(plugin, members, prism_id=""):
 
     prism_json = prism.to_json()
 
+    # TODO: this method should only be able to create new prisms and prism-update should be used for updating prisms
+    # TODO: decide if database operations should be moved to the Prism classes?
     # add the prism info to datastore with the prism_id
     plugin.rpc.datastore(key=prism.datastore_key, string=prism_json, mode="create-or-replace")
 
@@ -53,6 +56,8 @@ def showprism(plugin, prism_id):
     '''Show the details of a single prism.'''
     return showprism(prism_id)
 
+# TODO: I think only plugin methods should be defined in this file, and any utility functions defined elsewhere
+#       `showprism` is used in two places, maybe we just get rid of this or move to the prism class
 def showprism(prism_id):
     prism = Prism.find_unique(plugin, id=prism_id)   
 
@@ -65,6 +70,7 @@ def showprism(prism_id):
 def listprisms(plugin):
     '''List all prisms.'''
     try:
+        # TODO: match cln return syntax of {"prisms": []}
         return Prism.find_all(plugin)
 
     except RpcError as e:
