@@ -147,6 +147,14 @@ class Prism:
         return Prism(prism_dict=prism_dict)
 
     @staticmethod
+    def find_all(plugin: Plugin):
+        key = ["prism", "prism"]
+        prism_records = plugin.rpc.listdatastore(key=key).get("datastore", [])
+
+        # parse and return all prisms as dicts
+        return [json.loads(record['string']) for record in prism_records]
+
+    @staticmethod
     def validate(members):
         if len(members) < 1:
             raise ValueError("Prism must contain at least one member.")
