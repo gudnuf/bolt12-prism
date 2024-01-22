@@ -65,15 +65,7 @@ def showprism(prism_id):
 def listprisms(plugin):
     '''List all prisms.'''
     try:
-
-        # add the prism info to datastore with the prism_id
-        prism_key = [ "prism", "prism" ]
-        prism_records = plugin.rpc.listdatastore(key=prism_key)["datastore"]
-
-        # Extract the 'string' property and parse it as JSON
-        prism_strings = [json.loads(record['string']) for record in prism_records]
-
-        return prism_strings
+        return Prism.find_all(plugin)
 
     except RpcError as e:
         plugin.log(e)
