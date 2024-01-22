@@ -54,18 +54,12 @@ def showprism(plugin, prism_id):
     return showprism(prism_id)
 
 def showprism(prism_id):
+    prism = Prism.find_unique(plugin, id=prism_id)   
 
-    prism_strings = None
-
-    prism_key = [ "prism", "prism", prism_id ]
-    prism_record = plugin.rpc.listdatastore(key=prism_key)["datastore"]
-    prism_strings = json.loads(prism_record[0]['string'])
-
-
-    if prism_strings is None:
+    if prism is None:
         raise Exception(f"Prism with id {prism_id} not found.")
 
-    return prism_strings
+    return prism.to_dict()
 
 @plugin.method("prism-list")
 def listprisms(plugin):

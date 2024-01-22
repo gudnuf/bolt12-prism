@@ -1,4 +1,5 @@
 from typing import List
+from pyln.client import Plugin
 import re
 import os
 import uuid
@@ -93,15 +94,20 @@ class Member:
         # TODO also check to see if the user provided MORE fields than is allowed.
 
 class Prism:
-    def __init__(self, members: list[Member], prism_id=""):
-        self.validate(members)
-        self.members = members
-        self.version = prism_plugin_version
-        self.sdf = "relative"
-        if not prism_id:
-            self.id = f'{str(uuid.uuid4())}'
+    def __init__(self, members: list | None = None, prism_id: str = None, prism_dict=None):
+        if prism_dict:
+            self.id = prism_dict.get('prism_id')  
+            self.version = prism_dict.get('version')  
+            self.sdf = prism_dict.get('sdf')  
+            member_dicts = prism_dict.get('members')
+            self.members = [Member(m) for m in member_dicts]
         else:
-            self.id = prism_id
+            self.validate(members)
+            self.members = members
+            self.version = prism_plugin_version
+            self.sdf = 'relative' 
+            self.id = prism_id if prism_id else str(uuid.uuid4())
+
         self._datastore_key = ["prism", "prism", self.id]
 
     @property
@@ -113,7 +119,7 @@ class Prism:
             "prism_id": self.id,
             "version": self.version,
             "sdf": self.sdf,
-            "members": [m.to_json() for m in self.members]
+            "members": [m.to_dict() for m in self.members]
         })
     
     def to_dict(self):
@@ -123,6 +129,22 @@ class Prism:
             "sdf": self.sdf,
             "members": [m.to_dict() for m in self.members]
         }
+    
+    @staticmethod
+    def find_unique(plugin: Plugin, id: str):
+        # TODO: make this "base" key a variable
+        key = ["prism", "prism", id]
+
+        #find prism in datastore by ID
+        prism_json = plugin.rpc.listdatastore(key=key).get("datastore", [])[0]["string"]
+        
+        if not prism_json:
+            return None
+        
+        # convert prism to json
+        prism_dict = json.loads(prism_json)
+
+        return Prism(prism_dict=prism_dict)
 
     @staticmethod
     def validate(members):
