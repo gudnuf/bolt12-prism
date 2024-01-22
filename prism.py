@@ -7,8 +7,7 @@ from math import floor, ceil
 from pyln.client import Plugin, RpcError, Millisatoshi
 import uuid
 from datetime import datetime
-
-prism_plugin_version = "v0.0.2"
+from lib import Prism, Member, pubkeyRegex, bolt12Regex
 
 plugin_out = "/tmp/plugin_out"
 if os.path.isfile(plugin_out):
@@ -21,10 +20,6 @@ def printout(s):
         output.write('\n\n')
 
 plugin = Plugin()
-
-pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
-bolt12Regex = re.compile(r'^ln([a-zA-Z0-9]{1,90})[0-9]+[munp]?[a-zA-Z0-9]+[0-9]+[munp]?[a-zA-Z0-9]*$')
-
 
 class PrismBinding:
     def __init__(self, key):
@@ -51,47 +46,20 @@ def init(options, configuration, plugin, **kwargs):
 
     plugin.log("prism-api initialized")
 
-
-
-
-
-
 @plugin.method("prism-create")
 def createprism(plugin, members, prism_id=""):
     '''Create a prism.'''
-
-    if not prism_id:
-        # generate an ID for this prism, we namespace the records with "prism-"
-        prism_id = f"{str(uuid.uuid4())}"
-
+    prism_members = [Member(m) for m in members]
     # create a new prism object.
-    prism = createprism(prism_id, members)
+    prism = Prism(prism_members, prism_id)
+
+    prism_json = prism.to_json()
 
     # add the prism info to datastore with the prism_id
-    prism_key = [ "prism", "prism", prism_id ]
-    plugin.rpc.datastore(key=prism_key, string=json.dumps(prism), mode="create-or-replace")
-
-    # convert the prism object to JSON for return.
-    json_data = json.dumps(prism)
-    json_dict = json.loads(json_data)
+    plugin.rpc.datastore(key=prism.datastore_key, string=prism_json, mode="create-or-replace")
 
     # return the prism json
-    return json_dict
-
-def createprism(prism_id, members):
-    '''Returns a prism object.'''
-
-    validate_members(members)
-
-    # Create the prism json object
-    prism = {
-        "prism_id": prism_id,
-        "version": prism_plugin_version,
-        "sdf": "relative",
-        "members": members
-    }
-
-    return prism
+    return prism.to_dict()
 
 @plugin.method("prism-show")
 def showprism(plugin, prism_id):
@@ -364,52 +332,6 @@ def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
 
 #     return return_value
 
-
-def validate_members(members):
-    if len(members) < 1:
-        raise ValueError("Prism must contain at least one member.")
-
-    if not isinstance(members, list):
-        raise ValueError("Members must be a list.")
-
-    for member in members:
-        if not isinstance(member, dict):
-            raise ValueError("Each member in the list must be a dictionary.")
-
-        if not isinstance(member["name"], str):
-            raise ValueError("Member 'name' must be a string.")
-
-        if not isinstance(member["destination"], str):
-            raise ValueError("Member 'destination' must be a string")
-
-        # make sure destination is valid bolt12 or node pubkey
-        valid_destination = None
-
-        if bolt12Regex.match(member["destination"]):
-            member["type"] = "bolt12"
-        elif pubkeyRegex.match(member["destination"]):
-            member["type"] = "keysend"
-        else:
-            raise Exception("Destination must be a valid lightning node pubkey or bolt12 offer")
-
-        if not isinstance(member["split"], int):
-            raise ValueError("Member 'split' must be an integer")
-
-        if member["split"] < 1 or member["split"] > 1000:
-            raise ValueError(
-                "Member 'split' must be an integer between 1 and 1000")
-
-        # next, let's ensure the Member definition has the default fields.
-        member['outlay_msat'] = member.get('outlay_msat', 0)
-
-        # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
-        member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
-
-        # TODO 
-        member['threshold'] = member.get('threshold', 0)
-
-
-        # TODO also check to see if the user provided MORE fields than is allowed.
 
 @plugin.method("prism-executepayout")
 def prism_execute(prism_id, amount_msat=0, label=""):
