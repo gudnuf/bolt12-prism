@@ -136,9 +136,9 @@ class Prism:
         key = ["prism", "prism", id]
 
         #find prism in datastore by ID
-        prism_json = plugin.rpc.listdatastore(key=key).get("datastore", [])[0]["string"]
-        
-        if not prism_json:
+        try:
+            prism_json = plugin.rpc.listdatastore(key=key).get("datastore", [])[0]["string"]
+        except:
             return None
         
         # convert prism to json
