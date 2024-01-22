@@ -76,20 +76,24 @@ def updateprism(plugin, prism_id, members):
     '''Update an existing prism.'''
     try:
 
-        prism = createprism(prism_id, members)
+        prism = Prism.find_unique(plugin, id=prism_id)
 
-        # convert the prism object to JSON for return.
-        json_data = json.dumps(prism)
-        json_dict = json.loads(json_data)
-
-        prism_key = [ "prism", "prism", prism_id ]
-        if len(plugin.rpc.listdatastore(key=prism_key)) == 0:
+        if not prism:
             raise ValueError(f"A prism with with ID {prism_id} does not exist")
+        
+        # TODO just make an update method for the first prism instance
+        updated_members = [Member(m) for m in members]
+        updated_prism = Prism(updated_members, prism_id=prism_id)
+        
+        # update prism in datastore
+        plugin.rpc.datastore(
+            key=updated_prism.datastore_key, 
+            string=updated_prism.to_json(), 
+            mode="create-or-replace"
+            )
 
-        prism_key = [ "prism", "prism", prism_id ]
-        plugin.rpc.datastore(key=prism_key, string=json_data, mode="create-or-replace")
-
-        return json_dict
+        # return prism as a dict
+        return updated_prism.to_dict()
 
     except RpcError as e:
         plugin.log(e)
