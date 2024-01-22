@@ -6,16 +6,6 @@ from pyln.client import Plugin, RpcError, Millisatoshi
 from datetime import datetime
 from lib import Prism, Member, pubkeyRegex, bolt12Regex
 
-plugin_out = "/tmp/plugin_out"
-if os.path.isfile(plugin_out):
-    os.remove(plugin_out)
-
-# use this for debugging
-def printout(s):
-    with open(plugin_out, "a") as output:
-        output.write(s)
-        output.write('\n\n')
-
 plugin = Plugin()
 
 class PrismBinding:
