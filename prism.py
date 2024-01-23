@@ -406,11 +406,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
         else:
             plugin.log(f"ERROR: could not find the specific binding.")
 
-        #prisms_to_execute = [binding.prism_id for binding in bindings]
-
-        # convert the prism object to JSON and return.
-        #json_data = json.dumps(prisms_to_execute)
-        #json_dict = json.loads(json_data)
+        
 
         #printout(str(json_dict))
         for prism_id in prisms_to_execute:
@@ -418,59 +414,6 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
     except Exception as e:
         printout("Payment error: {}".format(e))
-
-def update_outlay(offer_id, member_id, amount_msat):
-    member = get_member_json(offer_id, member_id)
-    member["outlay_msat"] = int(amount_msat)
-
-    update_member(offer_id, member_id, member)
-
-def log_payments(payment_result):
-    lightning_dir = plugin.rpc.getinfo()["lightning-dir"]
-    log_file = os.path.join("/tmp", lightning_dir, "prism.log")
-
-    with open(log_file, "a") as log:
-        log.write(str(payment_result))
-        log.write("\n\n")
-
-
-def create_payment_error(member, outlay_msat, rpc_error, prism_id):
-    error_message = "Failed to pay {} to {}".format(
-        outlay_msat, member["name"])
-    time = "{}".format(datetime.utcnow())
-
-    return {
-        "time": time,
-        "message": error_message,
-        "amount": outlay_msat,
-        "member_id": member["id"],
-        "prism_id": prism_id,
-        "rpc_error": rpc_error,
-    }
-
-
-# def create_payment_result(member, payment, error=None, owe="0"):
-#     if error:
-#         result = {
-#             "destination": member["destination"],
-#             "type": member.get("type", "bolt12"),
-#             "amount_msat": "",
-#             "amount_sent_msat": "",
-#             "status": "error",
-#             "created_at": "",
-#             "error_message": error,
-#         }
-#     else:
-#         result = {
-#             "destination": member["destination"],
-#             "type": member.get("type", "bolt12"),
-#             "amount_msat": payment["amount_msat"],
-#             "amount_sent_msat": payment["amount_sent_msat"],
-#             "status": payment["status"],
-#             "created_at": datetime.fromtimestamp(payment["created_at"]).strftime("%Y-%m-%d %H:%M:%S"),
-#             "error_message": ""
-#         }
-#     return result
 
 
 plugin.run()  # Run our plugin
