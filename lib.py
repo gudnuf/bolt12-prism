@@ -38,7 +38,6 @@ class Member:
             "destination": self.destination,
             "split": self.split,
             "type": self.type,
-            "outlay_msat": self.outlay,
             "fees_incurred_by": self.fees_incurred_by,
             "threshold": self.threshold
         })
@@ -49,7 +48,6 @@ class Member:
             "destination": self.destination,
             "split": self.split,
             "type": self.type,
-            "outlay_msat": self.outlay,
             "fees_incurred_by": self.fees_incurred_by,
             "threshold": self.threshold
         }
@@ -81,9 +79,6 @@ class Member:
         if member["split"] < 1 or member["split"] > 1000:
             raise ValueError(
                 "Member 'split' must be an integer between 1 and 1000")
-
-        # next, let's ensure the Member definition has the default fields.
-        member['outlay_msat'] = member.get('outlay_msat', 0)
 
         # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
