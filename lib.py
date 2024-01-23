@@ -91,7 +91,7 @@ class Member:
 
 # TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
 class Prism:
-    def __init__(self, members: List[Member] | None = None, prism_id: str = None, prism_dict=None):
+    def __init__(self, members: List[Member] = None, prism_id: str = None, prism_dict=None):
         if prism_dict:
             # TODO: validate the prism_dict
             self.id = prism_dict.get('prism_id')  
@@ -159,3 +159,26 @@ class Prism:
 
         if not isinstance(members, list):
             raise ValueError("Members must be a list.")
+
+
+
+class PrismBinding:
+    def __init__(self, offer_id, prism_ids):
+        self.id = offer_id
+        self.prism_ids = prism_ids
+        self._datastore_key = ["prism", "bind", self.id]
+
+    @property
+    def datastore_key(self):
+        return self._datastore_key
+    
+
+    def to_dict(self):
+        return {
+            "offer_id": self.offer_id, 
+            "prism_ids": self.prism_ids
+        }
+
+    def to_json(self):
+        rtnVal = json.dumps(to_dict(self))
+
