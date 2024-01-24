@@ -180,5 +180,44 @@ class PrismBinding:
         }
 
     def to_json(self):
-        rtnVal = json.dumps(to_dict(self))
+    # this method finds any prismbindings in the db then returns one and only
+    # one PrismBinding object. Note this function isn't super efficient due to the
+    # prism_bindings in the db being keyed on offer_id rather than prism_id. 
+    # this function takes a prism ID and returns the assocaited PrismBinding object
+    @staticmethod
+    def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
 
+        #prism_binding = None
+
+        # so, need to pull all prism binding records and iterate over each one
+        # to see if it contains the current prism_id is the content of the record.
+        # this seems odd; but required since invoice_payment
+        prism_records_key = [ "prism", "bind", bolt_version ]
+
+        #plugin.log(f"prism_records_key: {prism_records_key}")
+
+        prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+
+        #plugin.log(f"prism_binding_records: {prism_binding_records}")
+
+        relevant_offer_ids_for_prism = []
+        prism_binding = None
+        offer_id = None
+
+        for binding_record in prism_binding_records:
+            list_of_prisms_in_binding_record = json.dumps(binding_record["string"])
+            #plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
+            
+            if prism_id in list_of_prisms_in_binding_record:
+                offer_id = binding_record["key"][3]
+                relevant_offer_ids_for_prism.append(offer_id)
+
+        plugin.log(f"get_binding->offer_id: {offer_id}")
+        plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
+        plugin.log(f"get_binding->bolt_version: {bolt_version}")
+
+        prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
+
+        plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
+            
+        return prism_binding

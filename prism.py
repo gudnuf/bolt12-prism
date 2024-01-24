@@ -86,24 +86,6 @@ def updateprism(plugin, prism_id, members):
         return e
 
 
-class PrismBinding:
-    def __init__(self, offer_id, prism_ids):
-        self.offer_id = offer_id
-        self.prism_ids = prism_ids
-
-    def to_dict(self):
-        return {"offer_id": self.offer_id, "prism_ids": self.prism_ids}
-
-    def to_json(self):
-        rtnVal = {
-            "offer_id": self.offer_id,
-            "prisms": self.prism_ids
-        }
-
-        return rtnVal
-
-
-
 @plugin.method("prism-bindinglist")
 def list_bindings(plugin, bolt_version="bolt12"):
     '''Lists all prism bindings.'''
@@ -132,37 +114,12 @@ def list_bindings(plugin, bolt_version="bolt12"):
     return return_object
 
 @plugin.method("prism-bindingshow")
-def get_binding(plugin, prism_id, bolt_version="bolt12"):
+def get_binding(plugin, prism_id, bolt_version="bolt12") -> PrismBinding:
     '''Show the bindings of a specific prism.'''
 
-    plugin.log(f"running get_binding")
+    plugin.log(f"INFO: prism-bindingshow executed for {bolt_version} prism '{prism_id}'")
+    return PrismBinding.get_prism_offer_binding(plugin, prism_id)
 
-    prism_binding = None
-
-    # so, need to pull all prism binding records and iterate over each one
-    # to see if it contains the current prism_id is the content of the record.
-    prism_records_key = [ "prism", "bind", bolt_version ]
-    plugin.log(f"prism_records_key: {prism_records_key}")
-
-    prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
-
-    relevant_offer_ids_for_prism = []
-    relevant_offer_ids_for_prism_bolt11 = []
-
-    for binding_record in prism_binding_records:
-        list_of_prisms_in_binding_record = json.dumps(binding_record["string"])
-        #plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
-        
-        if prism_id in list_of_prisms_in_binding_record:
-            offer_id = binding_record["key"][3]
-            relevant_offer_ids_for_prism.append(offer_id)
-
-    return_object = {
-        "prism_id": prism_id,
-        "bolt": bolt_version,
-        "offer_ids": relevant_offer_ids_for_prism }
-
-    return return_object
 
 
 # in this method, we maintain two sets of records, fbind and rbind. 
