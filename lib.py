@@ -160,24 +160,19 @@ class Prism:
         if not isinstance(members, list):
             raise ValueError("Members must be a list.")
 
-
-
 class PrismBinding:
-    def __init__(self, offer_id, prism_ids):
-        self.id = offer_id
+    def __init__(self, offer_id, prism_ids, bolt_version="bolt12"):
+        self.offer_id = offer_id
+        self.bolt_version = bolt_version
         self.prism_ids = prism_ids
-        self._datastore_key = ["prism", "bind", self.id]
+        self._datastore_key = ["prism", "bind", self.offer_id]
 
     @property
     def datastore_key(self):
         return self._datastore_key
     
-
     def to_dict(self):
-        return {
-            "offer_id": self.offer_id, 
-            "prism_ids": self.prism_ids
-        }
+        return {"offer_id": self.offer_id, "bolt_version": self.bolt_version, "prism_ids": self.prism_ids}
 
     def to_json(self):
     # this method finds any prismbindings in the db then returns one and only
