@@ -175,6 +175,8 @@ class PrismBinding:
         return {"offer_id": self.offer_id, "bolt_version": self.bolt_version, "prism_ids": self.prism_ids}
 
     def to_json(self):
+        return {"offer_id": self.offer_id, "bolt_version": self.bolt_version, "prism_ids": self.prism_ids}
+
     # this method finds any prismbindings in the db then returns one and only
     # one PrismBinding object. Note this function isn't super efficient due to the
     # prism_bindings in the db being keyed on offer_id rather than prism_id. 
