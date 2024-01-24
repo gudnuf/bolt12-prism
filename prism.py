@@ -122,14 +122,8 @@ def get_binding(plugin, prism_id, bolt_version="bolt12") -> PrismBinding:
 
 
 
-# in this method, we maintain two sets of records, fbind and rbind. 
-# fbind records are a one-to-many that maps a particular bolt12 offer or bolt11 invoice
-# to a list of prism ids. This is used when an invoice/offer is paid; the code
-# can go look up all the prism_ids that should be executed when a particular offer/invoice is paid
-
-# the rbind maps maintains a list of offer/invoice ids for a specific prism_id.
-# this allows for the bindingshow method, which will show you a list of offer/invoice IDs that are
-# currently bound to a specific prism_id.
+# adds a binding to the database. keyed like this: ["prism","bind","offer_id","prism_id"];
+# value of that record is a JSON document of a list of prism_ids
 @plugin.method("prism-bindingadd")
 def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
