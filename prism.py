@@ -4,7 +4,7 @@ import os
 from math import floor
 from pyln.client import Plugin, RpcError, Millisatoshi
 from datetime import datetime
-from lib import Prism, Member, PrismBinding, pubkeyRegex, bolt12Regex
+from lib import Prism, Member, pubkeyRegex, bolt12Regex
 
 plugin = Plugin()
 
@@ -87,14 +87,14 @@ def listprisms(plugin):
 
 
 
-@plugin.method("prism-bindinglist")
-def list_bindings(plugin, bolt_version="bolt12"):
-    '''Lists all prism bindings.'''
+# @plugin.method("prism-bindinglist")
+# def list_bindings(plugin, bolt_version="bolt12"):
+#     '''Lists all prism bindings.'''
 
-    return_object = {
-        f"{bolt_version}_bindings": PrismBinding.list_offer_prism_bindings(plugin, bolt_version=bolt_version) }
+#     return_object = {
+#         f"{bolt_version}_bindings": PrismBinding.list_offer_prism_bindings(plugin, bolt_version=bolt_version) }
 
-    return return_object
+#     return return_object
 
 
 # @plugin.method("prism-bindingshow")
@@ -110,32 +110,31 @@ def list_bindings(plugin, bolt_version="bolt12"):
 
 
 
-# adds a binding to the database. keyed like this: ["prism","bind","offer_id","prism_id"];
-# value of that record is a JSON document of a list of prism_ids
-@plugin.method("prism-bindingadd")
-def bindprism(plugin, prism_id, offer_id, outlay=0, bolt_version="bolt12"):
-    '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
+# # adds a binding to the database.
+# @plugin.method("prism-bindingadd")
+# def bindprism(plugin, prism_id, offer_id, outlay=0, bolt_version="bolt12"):
+#     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
-    types = [ "bolt11", "bolt12" ]
-    if bolt_version not in types:
-        raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+#     types = [ "bolt11", "bolt12" ]
+#     if bolt_version not in types:
+#         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    # ensure the offer/invoice exists
-    if bolt_version == "bolt12":
-        offer = plugin.rpc.listoffers(offer_id)
+#     # ensure the offer/invoice exists
+#     if bolt_version == "bolt12":
+#         offer = plugin.rpc.listoffers(offer_id)
 
-        if len(offer) == 0:
-            raise Exception("ERROR: the bolt12 offer does not exist!")
+#         if len(offer) == 0:
+#             raise Exception("ERROR: the bolt12 offer does not exist!")
 
-    elif bolt_version == "bolt11":
-        invoice = plugin.rpc.listinvoices(offer_id)
+#     elif bolt_version == "bolt11":
+#         invoice = plugin.rpc.listinvoices(offer_id)
 
-        if invoice is None:
-            raise Exception("ERROR: the bolt11 invoice does not exist.")
+#         if invoice is None:
+#             raise Exception("ERROR: the bolt11 invoice does not exist.")
 
-    add_binding_result = PrismBinding.add_binding(plugin, prism_id, offer_id, outlay, bolt_version)
+#     add_binding_result = PrismBinding.add_binding(plugin, prism_id, offer_id, outlay, bolt_version)
 
-    return add_binding_result
+#     return add_binding_result
 
 # @plugin.method("prism-bindingremove")
 # def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
@@ -150,7 +149,7 @@ def bindprism(plugin, prism_id, offer_id, outlay=0, bolt_version="bolt12"):
 #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
 #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-#     prism_binding_key = [ "prism", "bind", bolt_version, offer_id ]
+#     prism_binding_key = [ "prism", prism_plugin_version, "bind", bolt_version, offer_id ]
 #     plugin.log(f"binding_key: {prism_binding_key}")
 
 #     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
