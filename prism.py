@@ -36,7 +36,8 @@ def createprism(plugin, members, prism_id=""):
 @plugin.method("prism-show")
 def showprism(plugin, prism_id):
     '''Show the details of a single prism.'''
-    prism = Prism.find_unique(plugin, id=prism_id)   
+
+    prism = Prism.get_prism_definition(plugin, prism_id=prism_id)   
 
     if prism is None:
         raise Exception(f"Prism with id {prism_id} not found.")
@@ -147,7 +148,7 @@ def listprisms(plugin):
 #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
 #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-#     prism_binding_key = [ "prism", prism_plugin_version, "bind", bolt_version, offer_id ]
+#     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id ]
 #     plugin.log(f"binding_key: {prism_binding_key}")
 
 #     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]

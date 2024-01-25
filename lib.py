@@ -6,7 +6,7 @@ import uuid
 import json
 
 # TODO: find a way to define this dynamically or decide that doesn't make sense to do
-prism_plugin_version = "v2"
+prism_db_version = "v2"
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
 bolt12Regex = re.compile(r'^ln([a-zA-Z0-9]{1,90})[0-9]+[munp]?[a-zA-Z0-9]+[0-9]+[munp]?[a-zA-Z0-9]*$')
@@ -81,13 +81,30 @@ class Member:
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
+
+    # this static method returns a list of Members for a given prism_id
+    # the result of which can be used in the Prism Constructor.
+    @staticmethod
+    def get_prism_members(plugin: Plugin, prism_id) :
+        prism_key = ["prism", prism_db_version, "prism", prism_id]
+        member_records = plugin.rpc.listdatastore(key=prism_key).get("datastore", [])
+
+        members = []
+
+        for member_record in member_records:
+            member = json.loads(member_record["string"])
+            members.append(member)
+
+        return members
+
+
 # TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
 class Prism:
     def __init__(self, prism_id: str = None, members: List[Member] = None):
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
-        self._datastore_key = ["prism", prism_plugin_version, "prism", self.id]
+        self._datastore_key = ["prism", prism_db_version, "prism", self.id]
 
     @property
     def datastore_key(self):
@@ -96,13 +113,13 @@ class Prism:
     def to_json(self):
         return json.dumps({
             "prism_id": self.id,
-            "members": [m.to_dict() for m in self.members]
+            "members": self.members
         })
     
     def to_dict(self):
         return {
             "prism_id": self.id,
-            "members": [m.to_dict() for m in self.members]
+            "members": self.members
         }
     
     # this record save a Prism object to the database.
@@ -111,34 +128,44 @@ class Prism:
         plugin.log(f"got into save()")
 
         for member in self.members:
-            member_key = ["prism", prism_plugin_version, "prism", self.id, member.id]
+            member_key = ["prism", prism_db_version, "prism", self.id, member.id]
             plugin.log(f"member_key: {member_key}")
             plugin.log(f"member.to_json(): {member.to_json()}")
             plugin.rpc.datastore(key=member_key, string=member.to_json(), mode="create-or-replace")
 
     @staticmethod
-    def find_unique(plugin: Plugin, id: str):
-        # TODO: make this "base" key a variable
-        key = ["prism", prism_plugin_version, "prism", id]
+    def get_prism_definition(plugin: Plugin, prism_id: str):
+        members = []
 
         #find prism in datastore by ID
-        try:
-            prism_json = plugin.rpc.listdatastore(key=key).get("datastore", [])[0]["string"]
-        except:
-            return None
+        # try:
+        members = Member.get_prism_members(plugin, prism_id)
+        # except:
+        #     return None
         
+        # this goes on the members [m.to_dict() for m in members]
         # convert prism to json
-        prism_dict = json.loads(prism_json)
+        # prism_dict = json.dumps({
+        #     "prism_id": prism_id,
+        #     "members": members
+        # })
 
-        return Prism(prism_dict=prism_dict)
+        return Prism(prism_id=prism_id, members=members)
+ 
 
     @staticmethod
     def find_all(plugin: Plugin):
-        key = ["prism", prism_plugin_version, "prism"]
+        key = ["prism", prism_db_version, "prism"]
         prism_records = plugin.rpc.listdatastore(key=key).get("datastore", [])
+        prism_rtn_val = None
 
-        # parse and return all prisms as dicts
-        return [json.loads(record['string']) for record in prism_records] 
+        prism_keys = []
+        rtn_prism = None
+        for prism in prism_records:
+            prism_id = prism["key"][3]
+            prism_keys.append(prism_id)
+
+        return prism_keys
 
     @staticmethod
     def validate(members):
@@ -155,7 +182,7 @@ class Prism:
 #         self.offer_id = offer_id
 #         self.bolt_version = bolt_version
 #         self.prism_id = prism_id
-#         self._datastore_key = ["prism", prism_plugin_version, "bind", self.offer_id]
+#         self._datastore_key = ["prism", prism_db_version, "bind", self.offer_id]
 
 #     @property
 #     def datastore_key(self):
@@ -179,7 +206,7 @@ class Prism:
     #     # so, need to pull all prism binding records and iterate over each one
     #     # to see if it contains the current prism_id is the content of the record.
     #     # this seems odd; but required since invoice_payment
-    #     prism_records_key = [ "prism", prism_plugin_version, "bind", bolt_version ]
+    #     prism_records_key = [ "prism", prism_db_version, "bind", bolt_version ]
 
     #     plugin.log(f"prism_records_key: {prism_records_key}")
 
@@ -219,7 +246,7 @@ class Prism:
     #     if bolt_version not in types:
     #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    #     prism_binding_key = [ "prism", prism_plugin_version, "bind", bolt_version ]
+    #     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version ]
     #     prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
 
     #     #plugin.log(f"prism_bindings: {prism_bindings}")
@@ -242,7 +269,7 @@ class Prism:
     #     dbmode="must-create"
 
     #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-    #     prism_binding_key = [ "prism", prism_plugin_version, "bind", bolt_version, offer_id, prism_id ]
+    #     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id, prism_id ]
     #     plugin.log(f"binding_key: {prism_binding_key}")
 
     #     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
@@ -270,7 +297,7 @@ class Prism:
     #     if bolt_version not in types:
     #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    #     prism_binding_key = [ "prism", prism_plugin_version, "bind", bolt_version ]
+    #     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version ]
     #     prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
 
     #     plugin.log(f"prism_bindings: {prism_bindings}")
