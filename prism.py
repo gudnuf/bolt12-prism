@@ -22,18 +22,16 @@ def createprism(plugin, members, prism_id=""):
 
     prism_members = [Member(m) for m in members]
 
-    # create a new prism object.
-    prism = Prism(prism_members, prism_id)
+    # create a new prism object (this is used for our return object only)
+    prism = Prism(prism_id, prism_members)
+
+    # save all the record to the database
+    prism.save(plugin)
 
     prism_json = prism.to_json()
 
-    # TODO: this method should only be able to create new prisms and prism-update should be used for updating prisms
-    # TODO: decide if database operations should be moved to the Prism classes?
-    # add the prism info to datastore with the prism_id
-    plugin.rpc.datastore(key=prism.datastore_key, string=prism_json, mode="create-or-replace")
-
     # return the prism json
-    return prism.to_dict()
+    return prism.to_json()
 
 @plugin.method("prism-show")
 def showprism(plugin, prism_id):

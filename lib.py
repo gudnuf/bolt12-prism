@@ -27,31 +27,28 @@ class Member:
         self.id: str = str(uuid.uuid4())
         self.label: str = member.get("label")
         self.destination: str = member.get("destination") #bolt12 or pubkey
-        self.type = member.get("type")
         self.split: int = member.get("split")
         self.fees_incurred_by: str = member.get("fees_incurred_by")
-        self.threshold: int = member.get("threshold")
+        self.payout_threshold: int = member.get("payout_threshold")
 
     def to_json(self):
         return json.dumps({
             "member_id": self.id,
             "label": self.label,
-            "type": self.type,
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
-            "threshold": self.threshold
+            "payout_threshold": self.payout_threshold
         })
     
     def to_dict(self):
         return {
             "member_id": self.id,
             "label": self.label,
-            "type": self.type,
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
-            "threshold": self.threshold
+            "payout_threshold": self.payout_threshold
         }
 
     @staticmethod
@@ -65,15 +62,8 @@ class Member:
         if not isinstance(member["destination"], str):
             raise ValueError("Member 'destination' must be a string")
 
-        # make sure destination is valid bolt12 or node pubkey
-        valid_destination = None
-
-        if bolt12Regex.match(member["destination"]):
-            member["type"] = "bolt12"
-        elif pubkeyRegex.match(member["destination"]):
-            member["type"] = "keysend"
-        else:
-            raise Exception("Destination must be a valid lightning node pubkey or bolt12 offer")
+        if not bolt12Regex.match(member["destination"]) and not pubkeyRegex.match(member["destination"]):
+            raise Exception("Destination must be a valid lightning node pubkey or bolt12 offer.")
 
         if not isinstance(member["split"], int):
             raise ValueError("Member 'split' must be an integer")
@@ -86,24 +76,17 @@ class Member:
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
 
         # TODO 
-        member['threshold'] = member.get('threshold', 0)
+        member['payout_threshold'] = member.get('payout_threshold', 0)
 
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
 # TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
 class Prism:
-    def __init__(self, members: List[Member] = None, prism_id: str = None, prism_dict=None):
-        if prism_dict:
-            # TODO: validate the prism_dict
-            self.id = prism_dict.get('prism_id')  
-            member_dicts = prism_dict.get('members')
-            self.members = [Member(m) for m in member_dicts]
-        else:
-            self.validate(members)
-            self.members = members
-            self.id = prism_id if prism_id else str(uuid.uuid4())
-
+    def __init__(self, prism_id: str = None, members: List[Member] = None):
+        self.validate(members)
+        self.members = members
+        self.id = prism_id if prism_id else str(uuid.uuid4())
         self._datastore_key = ["prism", prism_plugin_version, "prism", self.id]
 
     @property
@@ -122,6 +105,17 @@ class Prism:
             "members": [m.to_dict() for m in self.members]
         }
     
+    # this record save a Prism object to the database.
+    # these records are stored under prism,prism_version,prism,prism_id_a,member_id_a_ii
+    def save(self, plugin):
+        plugin.log(f"got into save()")
+
+        for member in self.members:
+            member_key = ["prism", prism_plugin_version, "prism", self.id, member.id]
+            plugin.log(f"member_key: {member_key}")
+            plugin.log(f"member.to_json(): {member.to_json()}")
+            plugin.rpc.datastore(key=member_key, string=member.to_json(), mode="create-or-replace")
+
     @staticmethod
     def find_unique(plugin: Plugin, id: str):
         # TODO: make this "base" key a variable
@@ -153,6 +147,8 @@ class Prism:
 
         if not isinstance(members, list):
             raise ValueError("Members must be a list.")
+
+
 
 # class PrismBinding:
 #     def __init__(self, offer_id, prism_id, bolt_version="bolt12"):
