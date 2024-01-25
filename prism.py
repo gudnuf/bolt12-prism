@@ -35,15 +35,15 @@ def createprism(plugin, members, prism_id=""):
     # return the prism json
     return prism.to_dict()
 
-# @plugin.method("prism-show")
-# def showprism(plugin, prism_id):
-#     '''Show the details of a single prism.'''
-#     prism = Prism.find_unique(plugin, id=prism_id)   
+@plugin.method("prism-show")
+def showprism(plugin, prism_id):
+    '''Show the details of a single prism.'''
+    prism = Prism.find_unique(plugin, id=prism_id)   
 
-#     if prism is None:
-#         raise Exception(f"Prism with id {prism_id} not found.")
+    if prism is None:
+        raise Exception(f"Prism with id {prism_id} not found.")
 
-#     return prism.to_dict()
+    return prism.to_dict()
 
 @plugin.method("prism-list")
 def listprisms(plugin):
