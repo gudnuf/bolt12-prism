@@ -161,10 +161,10 @@ class Prism:
             raise ValueError("Members must be a list.")
 
 class PrismBinding:
-    def __init__(self, offer_id, prism_ids, bolt_version="bolt12"):
+    def __init__(self, offer_id, prism_id, bolt_version="bolt12"):
         self.offer_id = offer_id
         self.bolt_version = bolt_version
-        self.prism_ids = prism_ids
+        self.prism_id = prism_id
         self._datastore_key = ["prism", "bind", self.offer_id]
 
     @property
@@ -172,49 +172,125 @@ class PrismBinding:
         return self._datastore_key
     
     def to_dict(self):
-        return {"offer_id": self.offer_id, "bolt_version": self.bolt_version, "prism_ids": self.prism_ids}
+        return {"offer_id": self.offer_id, "prism_id": self.prism_ids}
 
     def to_json(self):
-        return {"offer_id": self.offer_id, "bolt_version": self.bolt_version, "prism_ids": self.prism_ids}
+        return {"offer_id": self.offer_id, "prism_id": self.prism_ids}
 
-    # this method finds any prismbindings in the db then returns one and only
-    # one PrismBinding object. Note this function isn't super efficient due to the
-    # prism_bindings in the db being keyed on offer_id rather than prism_id. 
-    # this function takes a prism ID and returns the assocaited PrismBinding object
+    # # this method finds any prismbindings in the db then returns one and only
+    # # one PrismBinding object. Note this function isn't super efficient due to the
+    # # prism_bindings in the db being keyed on offer_id rather than prism_id. 
+    # # this function takes a prism ID and returns the assocaited PrismBinding object
+    # @staticmethod
+    # def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+
+    #     prism_binding = None
+
+    #     # so, need to pull all prism binding records and iterate over each one
+    #     # to see if it contains the current prism_id is the content of the record.
+    #     # this seems odd; but required since invoice_payment
+    #     prism_records_key = [ "prism", "bind", bolt_version ]
+
+    #     plugin.log(f"prism_records_key: {prism_records_key}")
+
+    #     prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+
+    #     plugin.log(f"prism_binding_records: {prism_binding_records}")
+
+    #     relevant_offer_ids_for_prism = []
+    #     prism_binding = None
+    #     offer_id = None
+
+    #     for binding_record in prism_binding_records:
+    #         list_of_prisms_in_binding_record = json.dumps(binding_record["string"])
+    #         plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
+            
+    #         if prism_id in list_of_prisms_in_binding_record:
+    #             offer_id = binding_record["key"][3]
+    #             relevant_offer_ids_for_prism.append(offer_id)
+
+    #     plugin.log(f"get_binding->offer_id: {offer_id}")
+    #     plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
+    #     plugin.log(f"get_binding->bolt_version: {bolt_version}")
+
+    #     prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
+
+    #     plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
+            
+    #     return prism_binding
+
+
+    # # is is the revers of the method above. It return all prism-bindings,
+    # # but keyed on offer_id, as stored in the database.
+    # @staticmethod
+    # def get_offer_prismbindings(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+        
+    #     types = [ "bolt11", "bolt12" ]
+    #     if bolt_version not in types:
+    #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+
+    #     prism_binding_key = [ "prism", "bind", bolt_version ]
+    #     prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+
+    #     #plugin.log(f"prism_bindings: {prism_bindings}")
+
+    #     # Extract the 'string' property and parse it as JSONa
+    #     prism_binding_objects = []
+
+    #     for binding in prism_bindings:
+    #         prism_binding = PrismBinding(binding['key'][3], list(json.loads(binding['string'])))
+    #         prism_binding_objects.append(prism_binding)
+
+    # return prism_binding_objects
+
+
+    # is is the revers of the method above. It return all prism-bindings,
+    # but keyed on offer_id, as stored in the database.
     @staticmethod
-    def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+    def add_binding(plugin: Plugin, prism_id: str, offer_id: str, outlay=0, bolt_version="bolt12"):
+        
+        dbmode="must-create"
 
-        #prism_binding = None
+        # first we need to see if there are any existing binding records for this prism_id/invoice_type
+        prism_binding_key = [ "prism", "bind", bolt_version, offer_id, prism_id ]
+        plugin.log(f"binding_key: {prism_binding_key}")
 
-        # so, need to pull all prism binding records and iterate over each one
-        # to see if it contains the current prism_id is the content of the record.
-        # this seems odd; but required since invoice_payment
-        prism_records_key = [ "prism", "bind", bolt_version ]
+        binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+ 
+        # if the record already exists, we adjust the dbmode.
+        if len(binding_record) > 0:
+            # oh, the record already exists. If if s
+            dbmode = "must-replace"
 
-        #plugin.log(f"prism_records_key: {prism_records_key}")
+        # save the record
+        val = plugin.rpc.datastore(key=prism_binding_key, string=f"{outlay}", mode=dbmode)
 
-        prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+        response = {
+            "status": dbmode,
+            "offer_id": offer_id,
+            "prism_id": prism_id,
+            "prism_binding_key": prism_binding_key }
 
-        #plugin.log(f"prism_binding_records: {prism_binding_records}")
+        return response
 
-        relevant_offer_ids_for_prism = []
-        prism_binding = None
-        offer_id = None
+    # 
+    @staticmethod
+    def list_offer_prism_bindings(plugin, bolt_version="bolt12"):
+        types = [ "bolt11", "bolt12" ]
+        if bolt_version not in types:
+            raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-        for binding_record in prism_binding_records:
-            list_of_prisms_in_binding_record = json.dumps(binding_record["string"])
-            #plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
-            
-            if prism_id in list_of_prisms_in_binding_record:
-                offer_id = binding_record["key"][3]
-                relevant_offer_ids_for_prism.append(offer_id)
+        prism_binding_key = [ "prism", "bind", bolt_version ]
+        prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
 
-        plugin.log(f"get_binding->offer_id: {offer_id}")
-        plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
-        plugin.log(f"get_binding->bolt_version: {bolt_version}")
+        plugin.log(f"prism_bindings: {prism_bindings}")
 
-        prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
+        prism_binding_objects = []
+        for binding in prism_bindings:
+            offer_id = binding['key'][3]
+            prism_binding = PrismBinding.get_offer_prism_bindings(plugin, offer_id=offer_id, bolt_version=bolt_version)
+            prism_binding_objects.append(prism_binding)
 
-        plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
-            
-        return prism_binding
+        plugin.log(f"prism_binding_objects: {prism_binding_objects}")
+
+        return prism_bindings
