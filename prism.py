@@ -11,7 +11,7 @@ plugin = Plugin()
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
 
-    # TODO add minimum version check.
+    # TODO add minimum version check; ie ensure CLN is the correct version for this plugin version.
     # TODO migrate legacy prisms and bring them up-to-date with this version if necessary
 
     plugin.log("prism-api initialized")
@@ -20,7 +20,7 @@ def init(options, configuration, plugin, **kwargs):
 def createprism(plugin, members, prism_id=""):
     '''Create a prism.'''
 
-    prism_members = [Member(m) for m in members]
+    prism_members = [Member(prism_id, m) for m in members]
 
     # create a new prism object (this is used for our return object only)
     prism = Prism(prism_id, prism_members)
@@ -86,14 +86,16 @@ def listprisms(plugin):
 
 
 
-# @plugin.method("prism-bindinglist")
-# def list_bindings(plugin, bolt_version="bolt12"):
-#     '''Lists all prism bindings.'''
+@plugin.method("prism-bindinglist")
+def list_bindings(plugin, bolt_version="bolt12"):
+    '''Lists all prism bindings.'''
 
-#     return_object = {
-#         f"{bolt_version}_bindings": PrismBinding.list_offer_prism_bindings(plugin, bolt_version=bolt_version) }
+    binding_offers = PrismBinding.list_binding_offers(plugin, bolt_version=bolt_version)
+    return_object = {
+        f"{bolt_version}_prism_bindings": [ binding.to_dict() for binding in binding_offers ]
+        }
 
-#     return return_object
+    return return_object
 
 
 # @plugin.method("prism-bindingshow")
@@ -133,7 +135,7 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
         if offer is None:
             raise Exception("ERROR: the bolt11 invoice does not exist.")
 
-    add_binding_result = PrismBinding.add_binding(plugin, prism_id, offer_id, bolt_version)
+    add_binding_result = PrismBinding.add_binding(plugin=plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
 
     return add_binding_result
 
