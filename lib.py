@@ -261,34 +261,50 @@ class Prism:
     # return prism_binding_objects
 
 
-    # # is is the revers of the method above. It return all prism-bindings,
-    # # but keyed on offer_id, as stored in the database.
-    # @staticmethod
-    # def add_binding(plugin: Plugin, prism_id: str, offer_id: str, outlay=0, bolt_version="bolt12"):
+
+
+
+
+    # is is the revers of the method above. It return all prism-bindings,
+    # but keyed on offer_id, as stored in the database.
+    @staticmethod
+    def add_binding(plugin: Plugin, prism_id: str, offer_id: str, bolt_version="bolt12"):
+    
+        # first we need to see if there are any existing binding records for this prism_id/invoice_type
+        prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id ]
+        plugin.log(f"binding_key: {prism_binding_key}")
+
+
+        binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+        dbmode="must-create"
+
+        # if the record already exists, we adjust the dbmode.
+        if len(binding_record) > 0:
+            # oh, the record already exists. If if s
+            dbmode = "must-replace"
+
+        members = Member.get_prism_members(plugin, prism_id)
         
-    #     dbmode="must-create"
+        binding_value = {
+            "prism_id": prism_id,
+            "member_outlays": members
+        }
 
-    #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-    #     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id, prism_id ]
-    #     plugin.log(f"binding_key: {prism_binding_key}")
+        # save the record
+        plugin.rpc.datastore(key=prism_binding_key, string=f"{binding_value}", mode=f"{dbmode}")
 
-    #     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
- 
-    #     # if the record already exists, we adjust the dbmode.
-    #     if len(binding_record) > 0:
-    #         # oh, the record already exists. If if s
-    #         dbmode = "must-replace"
+        response = {
+            "status": dbmode,
+            "offer_id": offer_id,
+            "prism_id": prism_id,
+            "prism_binding_key": prism_binding_key }
 
-    #     # save the record
-    #     val = plugin.rpc.datastore(key=prism_binding_key, string=f"{outlay}", mode=dbmode)
+        return response
 
-    #     response = {
-    #         "status": dbmode,
-    #         "offer_id": offer_id,
-    #         "prism_id": prism_id,
-    #         "prism_binding_key": prism_binding_key }
 
-    #     return response
+
+
+
 
     # # 
     # @staticmethod
