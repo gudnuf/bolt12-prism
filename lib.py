@@ -22,8 +22,9 @@ def printout(s):
         output.write('\n\n')
 
 class Member:
-    def __init__(self, member):
+    def __init__(self, prism_id, member):
         self.validate(member)
+        self.prism_id: str = prism_id
         self.id: str = str(uuid.uuid4())
         self.label: str = member.get("label")
         self.destination: str = member.get("destination") #bolt12 or pubkey
@@ -177,22 +178,28 @@ class Prism:
 
 
 
-# class PrismBinding:
-#     def __init__(self, offer_id, prism_id, bolt_version="bolt12"):
-#         self.offer_id = offer_id
-#         self.bolt_version = bolt_version
-#         self.prism_id = prism_id
-#         self._datastore_key = ["prism", prism_db_version, "bind", self.offer_id]
+class PrismBinding:
+    def __init__(self, offer_id, prism_id, bolt_version="bolt12"):
+        self.offer_id = offer_id
+        self.bolt_version = bolt_version
+        self.prism_id = prism_id
+        self._datastore_key = ["prism", prism_db_version, "bind", self.offer_id]
 
-#     @property
-#     def datastore_key(self):
-#         return self._datastore_key
+    @property
+    def datastore_key(self):
+        return self._datastore_key
     
-#     def to_dict(self):
-#         return {"offer_id": self.offer_id, "prism_id": self.prism_ids}
+    def to_dict(self):
+        return {
+            "offer_id": self.offer_id, 
+            "prism_id": self.prism_ids
+            }
 
-#     def to_json(self):
-#         return {"offer_id": self.offer_id, "prism_id": self.prism_ids}
+    def to_json(self):
+        return {
+            "offer_id": self.offer_id, 
+            "prism_id": self.prism_ids
+            }
 
     # # this method finds any prismbindings in the db then returns one and only
     # # one PrismBinding object. Note this function isn't super efficient due to the
