@@ -51,6 +51,8 @@ lightning-cli prism-create -k 'members=[{"label" : "Lead-Singer", "destination":
 
 Let's say you have three prisms defined, one of which you specified and ID for. `prism-list` might look something like this:
 
+`prism-list"`
+
 ```json
 {
    "prisms": [
@@ -61,11 +63,11 @@ Let's say you have three prisms defined, one of which you specified and ID for. 
 }
 ```
 
-## `prism-show prism_id` show a Prism Definition
+## Show a Prism
 
 Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition.
 
-`prism-show prism-demo1`
+`prism-show -k prism_id="prism-demo1"`
 
 ```json
 {
@@ -98,6 +100,81 @@ Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definit
    ]
 }
 ```
+
+
+## Bindings
+
+By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism executes.
+
+### Create a binding
+
+Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
+
+`lightning-cli.sh --id=1 prism-bindingadd -k prism_id=prism3 offer_id=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4`
+
+```json
+./
+{
+   "status": "must-replace",
+   "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
+   "prism_id": "prism3",
+   "prism_binding_key": [
+      "prism",
+      "v2",
+      "bind",
+      "bolt12",
+      "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4"
+   ],
+   "get_prism_members": {
+      "7d109925-b8d9-44dc-b8ee-0c63d36da765": {
+         "label": "Dave",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvhf0t2pwm9qpg6y8vvsw97ufrc97j0u4a2rhyhlng3wee09srcaq",
+         "split": 3,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      },
+      "f350e291-8608-44b0-8555-3e0147d70f7c": {
+         "label": "Carol",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0ck6jfedtmkwuf3c7zlhtngj7n3q6s40mw9zq40xq46j506v6wuc",
+         "split": 2,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      },
+      "fa7f43c4-082b-46e3-af03-306b93a0b341": {
+         "label": "Erin",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqwz2ztkw2w4a6946kwz4ac0upqfsaqwkassragy3jw5zm9z93ehks",
+         "split": 4,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      }
+   }
+}
+```
+
+### List Prism Bindings
+
+Want to see all your bindings? Run `prism-bindinglist`
+
+`./lightning-cli.sh --id=1 prism-bindinglist`
+
+```json
+{
+   "bolt12_prism_bindings": [
+      {
+         "offer_id": "2f882b6a8dac6d84c7f9c9088fa5a4b62a480d71cd9e40b8fd7efe2263e9112b",
+         "prism_id": "prism2"
+      },
+      {
+         "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
+         "prism_id": "prism3"
+      }
+   ]
+}
+```
+
+
+
+
 <!-- 
 ### Update an existing prism
 
@@ -113,19 +190,7 @@ Running `prism-delete prism_id` will delete a prism object from the data store. 
 
 When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the `label` paramemter to associate this payout to some external `id`.
 
-## Bindings
 
-By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism executes.
-
-`prism-bindingadd prism_id invoice_type invoice_label`
-    Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
-
-`prism-bindinglist` 
-    Lists all prism bindings.
-
-```
-
-```
 
 `prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding. -->
