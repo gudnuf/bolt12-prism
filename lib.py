@@ -49,6 +49,7 @@ class Member:
     
     def to_dict(self):
         return {
+            "member_id": self.id,
             "label": self.label,
             "destination": self.destination,
             "split": self.split,
@@ -314,7 +315,7 @@ class PrismBinding:
             "offer_id": offer_id,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
-            "get_prism_members": { member.id: member.to_dict() for member in members }
+            "get_prism_members": [ member.to_dict() for member in members ]
             }
 
         return response
