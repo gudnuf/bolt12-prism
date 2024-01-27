@@ -49,7 +49,7 @@ def listprisms(plugin):
     '''List all prisms.'''
     try:
         return {
-            "prisms": Prism.find_all(plugin)
+            "prism_ids": Prism.find_all(plugin)
         }
 
     except RpcError as e:

@@ -40,7 +40,9 @@ Find your c-lightning config file and add
 
 ### Create a prism
 
-Syntax: `prism-create -k members=members_json prism_id=prism-xxx`. The `prism_id` is optional. If left unspecified, a unique prism id starting with `prism-` will be assigned. Note that if you specify a `prism_id`, it MUST start with `prism-`. [Here's an example script](https://github.com/farscapian/lnplay/blob/incus/channel_templates/create_bolt12_prism.sh).
+`prism-create -k members=members_json prism_id=prism-xxx`
+
+The `prism_id` is optional. If left unspecified, a unique prism id will be assigned.
 
 ```bash
 lightning-cli prism-create -k 'members=[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]'
@@ -55,7 +57,7 @@ Let's say you have three prisms defined, one of which you specified and ID for. 
 
 ```json
 {
-   "prisms": [
+   "prism_ids": [
       "1ae57a94-1a57-4d9c-aabe-5da1dd340edd",
       "88a743d1-da8c-4cbe-afdc-9db58e154dc5",
       "prism-demo1"
@@ -65,7 +67,7 @@ Let's say you have three prisms defined, one of which you specified and ID for. 
 
 ## Show a Prism
 
-Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition.
+Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition. This document specifies the POLICY of the prism.
 
 `prism-show -k prism_id="prism-demo1"`
 
@@ -101,16 +103,17 @@ Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definit
 }
 ```
 
-
 ## Bindings
 
-By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer or a BOLT11 invoice. Note that for BOLT11 invoices and single-use BOLT12 offers, bindings are REMOVED after the prism executes.
+Ok, you have a bunch of prism_ids. Next step is to assign a BOLT12 offer to a Prism. Note that ONLY ONE PRISM can be assigned per BOLT12 offer.
+
+By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer. (BOLT11 support planned)
 
 ### Create a binding
 
-Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
+`lightning-cli.sh --id=1 prism-bindingadd -k offer_id=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3`
 
-`lightning-cli.sh --id=1 prism-bindingadd -k prism_id=prism3 offer_id=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4`
+Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
 
 ```json
 ./
