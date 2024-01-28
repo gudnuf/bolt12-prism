@@ -94,18 +94,18 @@ def list_bindings(plugin, bolt_version="bolt12"):
     return response
 
 
-# @plugin.method("prism-bindingshow")
-# def get_binding(plugin, prism_id, bolt_version="bolt12") -> PrismBinding:
-#     '''Show the bindings of a specific prism.'''
+@plugin.method("prism-bindingshow")
+def get_binding(plugin, offer_id, bolt_version="bolt12"):
+    '''Show the bindings of a specific prism.'''
 
-#     return_val = PrismBinding.get_offer_prismbindings(plugin, prism_id)
+    binding_state = PrismBinding.get_binding_state(plugin, offer_id)
 
-#     plugin.log(f"INFO: prism-bindingshow executed for {bolt_version} prism '{prism_id}'")
-#     plugin.log(f"return_val: {return_val}'")
+    if not binding_state:
+        raise Exception("ERROR: could not find a binding for this offer.")
+
+    plugin.log(f"INFO: prism-bindingshow executed for {bolt_version} offer '{offer_id}'")
  
-#     return return_val
-
-
+    return binding_state
 
 # adds a binding to the database.
 @plugin.method("prism-bindingadd")

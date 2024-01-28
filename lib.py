@@ -250,32 +250,29 @@ class PrismBinding:
     #     return prism_binding
 
 
-    # # is is the revers of the method above. It return all prism-bindings,
-    # # but keyed on offer_id, as stored in the database.
-    # @staticmethod
-    # def get_offer_prismbindings(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+    # this method shows the current state of  a specific binding.
+    # bindings are 
+    @staticmethod
+    def get_binding_state(plugin: Plugin, offer_id: str, bolt_version="bolt12"):
         
-    #     types = [ "bolt11", "bolt12" ]
-    #     if bolt_version not in types:
-    #         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+        plugin.log(f"got into get_binding_state.")
+        plugin.log(f"offer_id: {offer_id}'")
 
-    #     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version ]
-    #     prism_bindings = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+        types = [ "bolt11", "bolt12" ]
+        if bolt_version not in types:
+            raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    #     #plugin.log(f"prism_bindings: {prism_bindings}")
+        bindings_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id ]
 
-    #     # Extract the 'string' property and parse it as JSONa
-    #     prism_binding_objects = []
+        binding_records = plugin.rpc.listdatastore(key=bindings_key).get("datastore", [])
 
-    #     for binding in prism_bindings:
-    #         prism_binding = PrismBinding(binding['key'][3], list(json.loads(binding['string'])))
-    #         prism_binding_objects.append(prism_binding)
+        if not binding_records:
+            raise Exception("Could not find a prism binding for offer {offer_id}")
 
-    # return prism_binding_objects
+        # load the JSON string from the db.
+        binding_state = json.loads(binding_records[0]['string'])
 
-
-
-
+        return binding_state
 
 
     # is is the revers of the method above. It return all prism-bindings,
