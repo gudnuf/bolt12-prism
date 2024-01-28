@@ -56,33 +56,30 @@ def listprisms(plugin):
         plugin.log(e)
         return e
 
-# @plugin.method("prism-update")
-# def updateprism(plugin, prism_id, members):
-#     '''Update an existing prism.'''
-#     try:
+@plugin.method("prism-update")
+def updateprism(plugin, prism_id, members):
+    '''Update an existing prism.'''
+    try:
 
-#         prism = Prism.find_unique(plugin, id=prism_id)
+        prism = Prism.get(plugin=plugin, prism_id=prism_id)
 
-#         if not prism:
-#             raise ValueError(f"A prism with with ID {prism_id} does not exist")
+        if not prism:
+            raise ValueError(f"A prism with with ID {prism_id} does not exist")
         
-#         # TODO just make an update method for the first prism instance
-#         updated_members = [Member(m) for m in members]
-#         updated_prism = Prism(updated_members, prism_id=prism_id)
         
-#         # update prism in datastore
-#         plugin.rpc.datastore(
-#             key=updated_prism.datastore_key, 
-#             string=updated_prism.to_json(), 
-#             mode="create-or-replace"
-#             )
+        # TODO just make an update method for the first prism instance
+        updated_members = [Member(member_dict=member, prism_id=prism_id) for member in members]
 
-#         # return prism as a dict
-#         return updated_prism.to_dict()
+        updated_prism_object = Prism(prism_id=prism_id, members=updated_members)
+        
+        updated_prism_object.save(plugin)
 
-#     except RpcError as e:
-#         plugin.log(e)
-#         return e
+        # return prism as a dict
+        return updated_prism_object.to_dict()
+
+    except RpcError as e:
+        plugin.log(e)
+        return e
 
 
 
