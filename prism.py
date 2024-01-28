@@ -37,7 +37,7 @@ def createprism(plugin, members, prism_id=""):
 def showprism(plugin, prism_id):
     '''Show the details of a single prism.'''
 
-    prism = Prism.get_prism_definition(plugin, prism_id=prism_id)   
+    prism = Prism.get(plugin=plugin, prism_id=prism_id)   
 
     if prism is None:
         raise Exception(f"Prism with id {prism_id} not found.")

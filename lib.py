@@ -143,7 +143,7 @@ class Prism:
             plugin.rpc.datastore(key=member_key, string=member.to_json(), mode="create-or-replace")
 
     @staticmethod
-    def get_prism_definition(plugin: Plugin, prism_id: str):
+    def get(plugin: Plugin, prism_id: str):
         members = []
 
         #find prism in datastore by ID
