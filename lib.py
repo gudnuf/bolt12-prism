@@ -25,7 +25,7 @@ class Member:
             self.destination: str = member_dict.get("destination")
             self.split: str = member_dict.get("split")
             self.fees_incurred_by: str = member_dict.get("fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-            self.payout_threshold: str = Millisatoshi(member_dict.get("payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
+            self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get("payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
         else:
             self.validate(member)
             self.prism_id: str = prism_id
@@ -129,7 +129,7 @@ class Prism:
     def to_dict(self):
         return {
             "prism_id": self.id,
-            "prism_members": { member.id: member.to_dict() for member in self.members }
+            "prism_members": [member.to_dict() for member in self.members ]
         }
 
 
@@ -154,7 +154,6 @@ class Prism:
 
         return Prism(prism_id=prism_id, members=members)
  
-
     @staticmethod
     def find_all(plugin: Plugin):
         key = ["prism", prism_db_version, "prism"]
@@ -315,7 +314,7 @@ class PrismBinding:
             "offer_id": offer_id,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
-            "get_prism_members": [ member.to_dict() for member in members ]
+            "prism_members": [ member.to_dict() for member in members ]
             }
 
         return response

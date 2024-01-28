@@ -66,7 +66,6 @@ def updateprism(plugin, prism_id, members):
         if not prism:
             raise ValueError(f"A prism with with ID {prism_id} does not exist")
         
-        
         # TODO just make an update method for the first prism instance
         updated_members = [Member(member_dict=member, prism_id=prism_id) for member in members]
 
@@ -88,11 +87,11 @@ def list_bindings(plugin, bolt_version="bolt12"):
     '''Lists all prism bindings.'''
 
     binding_offers = PrismBinding.list_binding_offers(plugin, bolt_version=bolt_version)
-    return_object = {
+    response = {
         f"{bolt_version}_prism_bindings": [ binding.to_dict() for binding in binding_offers ]
         }
 
-    return return_object
+    return response
 
 
 # @plugin.method("prism-bindingshow")
