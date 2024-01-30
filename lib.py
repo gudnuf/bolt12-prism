@@ -202,15 +202,13 @@ class Prism:
     def find_all(plugin: Plugin):
         key = ["prism", prism_db_version, "prism"]
         prism_records = plugin.rpc.listdatastore(key=key).get("datastore", [])
-        prism_rtn_val = None
 
-        prism_keys = []
-        rtn_prism = None
+        prism_ids = []
         for prism in prism_records:
             prism_id = prism["key"][3]
-            prism_keys.append(prism_id)
+            prism_ids.append(prism_id)
 
-        return prism_keys
+        return prism_ids
 
     @staticmethod
     def validate(members):
