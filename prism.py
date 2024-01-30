@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+#!/nix/store/asiphbpiy2gmidfm3xbwcikayhs66289-python3-3.11.7/bin/python3
 from pyln.client import Plugin, RpcError
 from lib import Prism, Member, PrismBinding
 
 plugin = Plugin()
+
 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
@@ -11,6 +12,7 @@ def init(options, configuration, plugin, **kwargs):
     # TODO migrate legacy prisms and bring them up-to-date with this version if necessary
 
     plugin.log("prism-api initialized")
+
 
 @plugin.method("prism-create")
 def createprism(plugin, members, prism_id=""):
@@ -29,16 +31,18 @@ def createprism(plugin, members, prism_id=""):
     # return the prism json
     return prism.to_json()
 
+
 @plugin.method("prism-show")
 def showprism(plugin, prism_id):
     '''Show the details of a single prism.'''
 
-    prism = Prism.get(plugin=plugin, prism_id=prism_id)   
+    prism = Prism.get(plugin=plugin, prism_id=prism_id)
 
     if prism is None:
         raise Exception(f"Prism with id {prism_id} not found.")
 
     return prism.to_dict()
+
 
 @plugin.method("prism-list")
 def listprisms(plugin):
@@ -52,6 +56,7 @@ def listprisms(plugin):
         plugin.log(e)
         return e
 
+
 @plugin.method("prism-update")
 def updateprism(plugin, prism_id, members):
     '''Update an existing prism.'''
@@ -61,12 +66,14 @@ def updateprism(plugin, prism_id, members):
 
         if not prism:
             raise ValueError(f"A prism with with ID {prism_id} does not exist")
-        
-        # TODO just make an update method for the first prism instance
-        updated_members = [Member(member_dict=member, prism_id=prism_id) for member in members]
 
-        updated_prism_object = Prism(prism_id=prism_id, members=updated_members)
-        
+        # TODO just make an update method for the first prism instance
+        updated_members = [
+            Member(member_dict=member, prism_id=prism_id) for member in members]
+
+        updated_prism_object = Prism(
+            prism_id=prism_id, members=updated_members)
+
         updated_prism_object.save(plugin)
 
         # return prism as a dict
@@ -77,15 +84,15 @@ def updateprism(plugin, prism_id, members):
         return e
 
 
-
 @plugin.method("prism-bindinglist")
 def list_bindings(plugin, bolt_version="bolt12"):
     '''Lists all prism bindings.'''
 
-    binding_offers = PrismBinding.list_binding_offers(plugin, bolt_version=bolt_version)
+    binding_offers = PrismBinding.list_binding_offers(
+        plugin, bolt_version=bolt_version)
     response = {
-        f"{bolt_version}_prism_bindings": [ binding.to_dict() for binding in binding_offers ]
-        }
+        f"{bolt_version}_prism_bindings": [binding.to_dict() for binding in binding_offers]
+    }
 
     return response
 
@@ -99,16 +106,19 @@ def get_binding(plugin, offer_id, bolt_version="bolt12"):
     if not binding_state:
         raise Exception("ERROR: could not find a binding for this offer.")
 
-    plugin.log(f"INFO: prism-bindingshow executed for {bolt_version} offer '{offer_id}'")
- 
+    plugin.log(
+        f"INFO: prism-bindingshow executed for {bolt_version} offer '{offer_id}'")
+
     return binding_state
 
 # adds a binding to the database.
+
+
 @plugin.method("prism-bindingadd")
 def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
-    types = [ "bolt11", "bolt12" ]
+    types = ["bolt11", "bolt12"]
     if bolt_version not in types:
         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
@@ -127,7 +137,8 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
         if offer is None:
             raise Exception("ERROR: the bolt11 invoice does not exist.")
 
-    add_binding_result = PrismBinding.add_binding(plugin=plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
+    add_binding_result = PrismBinding.add_binding(
+        plugin=plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
 
     return add_binding_result
 
@@ -201,12 +212,11 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
 #     return return_value
 
 
-
 # @plugin.method("prism-executepayout")
 # def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 #     '''Executes (pays-out) a prism.'''
 
-    
+
 #     plugin.log(f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
 
     # if not isinstance(amount_msat, int):
@@ -217,10 +227,9 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
     #     raise Exception("ERROR: amount_msat must be greater than 0.")
 
     # # TODO; first thing we should do here probably is update the Prism with new outlay values.
-    # # that way we can immediately record/persist 
+    # # that way we can immediately record/persist
     # plugin.log(f"{amount_msat}")
     # plugin.log(f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
-
 
     # prism = Prism.find_unique(plugin, prism_id)
 
@@ -234,13 +243,13 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
     # sum_of_member_splits = sum(map(lambda member: member.split, prism.members))
 
     # # this for loop basically updates all the prism member outlay database records...
-    # # we don't execute payments in this loop. 
+    # # we don't execute payments in this loop.
     # for member in prism.members:
 
-    #     # so, let's first update the outlay in the database 
-    #     # so if fails, we retain the payout amount. If the payment is successful, 
+    #     # so, let's first update the outlay in the database
+    #     # so if fails, we retain the payout amount. If the payment is successful,
     #     # we will want to deduct the payment fee from the outlay and update record.
-        
+
     #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
     #     prism_outlay_key = [ "prism", "prism", prism_id, "outlay" ]
     #     plugin.log(f"prism_outlay_key: {prism_outlay_key}")
@@ -266,8 +275,7 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
 
     #     # save the outlay in the database before we attempt to pay out.
     #     plugin.rpc.datastore(key=prism_outlay_key, string=new_member_outlay, mode=dbmode)
-           
-          
+
     #     for member in prism_members:
 
     #         # first we need to see if there are any existing binding records for this prism_id/invoice_type
@@ -302,11 +310,11 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
 #             return binding
 #     return None
 
-# # ABOUT: First, we check the db to see if there are any bindings associated with 
+# # ABOUT: First, we check the db to see if there are any bindings associated with
 # # the invoice payment.
 # @plugin.subscribe("invoice_payment")
 # def on_payment(plugin, invoice_payment, **kwargs):
-    
+
 #     plugin.log(f"INFO: executing invoice_payment {invoice_payment}")
 
 #     try:
@@ -339,7 +347,7 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
 
 
 #         #binding = get_binding(plugin, offer_id, bind_type)
-#         #payment_label)["invoices"][0] 
+#         #payment_label)["invoices"][0]
 #         #get_binding(plugin, offer_id, bind_type)
 
 #         #plugin.log(f"prism_binding {prism_binding.to_dict()}")
@@ -348,13 +356,12 @@ def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
 #         #     plugin.log(f"binding from get_binding:  {binding.to_json()}")
 #         # else:
 #         #     plugin.log(f"ERROR: could not find the specific binding.")
-        
+
 #         # for prism_id in binding.prism_ids:
 #         #     prism_execute(prism_id, int(amount_msat), payment_label)
 
 #     except Exception as e:
 #         raise Exception("Payment error: {}".format(e))
-
 
 
 plugin.run()  # Run our plugin
