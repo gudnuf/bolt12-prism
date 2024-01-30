@@ -69,7 +69,7 @@ def updateprism(plugin, prism_id, members):
 
         # TODO just make an update method for the first prism instance
         updated_members = [
-            Member(member_dict=member, prism_id=prism_id) for member in members]
+            Member(plugin=plugin, member_dict=member) for member in members]
 
         updated_prism_object = Prism(
             prism_id=prism_id, members=updated_members)
