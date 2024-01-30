@@ -15,7 +15,30 @@ plugin_out = "/tmp/plugin_out"
 if os.path.isfile(plugin_out):
     os.remove(plugin_out)
 
+
 class Member:
+    @staticmethod
+    def get(plugin: Plugin, member_id: str):
+        member_record = plugin.rpc.listdatastore(
+            key=["prism", prism_db_version, "member", member_id])["datastore"]
+
+        if not member_record:
+            return None
+
+        member_dict = json.loads(member_record[0]["string"])
+        return Member(plugin, member_dict)
+
+    @staticmethod
+    def find_many(plugin: Plugin, member_ids: List[str]):
+        members = []
+        for member_id in member_ids:
+            member = Member.get(plugin, member_id)
+            if member:
+                members.append(member)
+            else:
+                raise Exception(f"Could not find member: {member_id}")
+        return members
+
     def __init__(self, plugin: Plugin, member_dict=None):
         self.validate(member_dict)
 
@@ -115,11 +138,10 @@ class Prism:
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
-        self._datastore_key = ["prism", prism_db_version, "prism", self.id]
 
-    @property
-    def datastore_key(self):
-        return self._datastore_key
+    @staticmethod
+    def datastore_key(id):
+        return ["prism", prism_db_version, "prism", id]
 
     def to_json(self, member_ids_only=False):
         members = []
@@ -149,21 +171,29 @@ class Prism:
             member.save()
 
         # save the prism
-        plugin.rpc.datastore(key=self._datastore_key,
+        plugin.rpc.datastore(key=self.datastore_key(id=self.id),
                              string=self.to_json(member_ids_only=True), mode="create-or-replace")
 
     @staticmethod
-    def get(plugin: Plugin, prism_id: str):
-        members = []
+    def from_db_string(plugin: Plugin, prism_string: str):
+        prism_dict = json.loads(prism_string)
 
-        #find prism in datastore by ID
-        try:
-            members = Member.get_prism_members(plugin, prism_id)
-        except:
-            return None
+        prism_id = prism_dict.get("prism_id")
+
+        members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
         return Prism(prism_id=prism_id, members=members)
- 
+
+    @staticmethod
+    def get(plugin: Plugin, prism_id: str):
+        prism_record = plugin.rpc.listdatastore(
+            key=Prism.datastore_key(id=prism_id))["datastore"]
+
+        if not prism_record:
+            return None
+
+        return Prism.from_db_string(plugin, prism_record[0]["string"])
+
     @staticmethod
     def find_all(plugin: Plugin):
         key = ["prism", prism_db_version, "prism"]
