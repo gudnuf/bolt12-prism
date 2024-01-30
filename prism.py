@@ -16,7 +16,7 @@ def init(options, configuration, plugin, **kwargs):
 def createprism(plugin, members, prism_id=""):
     '''Create a prism.'''
 
-    prism_members = [Member(prism_id, m) for m in members]
+    prism_members = [Member(plugin=plugin, member_dict=m) for m in members]
 
     # create a new prism object (this is used for our return object only)
     prism = Prism(prism_id, prism_members)

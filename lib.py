@@ -16,26 +16,27 @@ if os.path.isfile(plugin_out):
     os.remove(plugin_out)
 
 class Member:
-    def __init__(self, prism_id: str = None, member_dict = None):
-        if member_dict:
-            # TODO: validate the member_dict
-            self.prism_id = member_dict.get("prism_id")
-            self.id = member_dict.get("member_id") if member_dict.get("member_id") else str(uuid.uuid4())
-            self.label: str = member_dict.get("label")
-            self.destination: str = member_dict.get("destination")
-            self.split: str = member_dict.get("split")
-            self.fees_incurred_by: str = member_dict.get("fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-            self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get("payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
-        else:
-            self.validate(member)
-            self.prism_id: str = prism_id
-            self.id: str = str(uuid.uuid4())
-            self.label: str = member.get("label")
-            self.destination: str = member.get("destination")
-            self.split: int = member.get("split")
-            self.fees_incurred_by: str = member.get("fees_incurred_by")
-            self.payout_threshold: Millisatoshi = Millisatoshi(member.get("payout_threshold"))
-        
+    def __init__(self, plugin: Plugin, member_dict=None):
+        self.validate(member_dict)
+
+        self.id = member_dict.get("member_id") if member_dict.get(
+            "member_id") else str(uuid.uuid4())
+        self.label: str = member_dict.get("label")
+        self.destination: str = member_dict.get("destination")
+        self.split: str = member_dict.get("split")
+        self.fees_incurred_by: str = member_dict.get(
+            "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
+        self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get(
+            "payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
+
+        self._plugin = plugin
+
+        self._datastore_key = ["prism", prism_db_version, "member", self.id]
+
+    def save(self):
+        self._plugin.log(f"Saving member: {self.id}")
+        self._plugin.rpc.datastore(
+            key=self._datastore_key, string=self.to_json(), mode="create-or-replace")
 
     def to_json(self):
         return json.dumps({
@@ -119,28 +120,37 @@ class Prism:
     @property
     def datastore_key(self):
         return self._datastore_key
-    
-    def to_json(self):
+
+    def to_json(self, member_ids_only=False):
+        members = []
+        if member_ids_only:
+            members = [member.id for member in self.members]
+        else:
+            members = [member.to_dict() for member in self.members]
         return json.dumps({
             "prism_id": self.id,
-            "prism_members": self.members
+            "prism_members": members
         })
-    
+
     def to_dict(self):
         return {
             "prism_id": self.id,
             "prism_members": [member.to_dict() for member in self.members ]
         }
 
+    # save a Prism object and members to the database.
+    # these records are stored under prism,prism_version,prism,prism_id_a
 
-    # this record save a Prism object to the database.
-    # these records are stored under prism,prism_version,prism,prism_id_a,member_id_a_ii
     def save(self, plugin):
-        plugin.log(f"got into save()")
+        plugin.log(f"Saving prism: {self.id}")
 
+        # save each prism member
         for member in self.members:
-            member_key = ["prism", prism_db_version, "prism", self.id, member.id]
-            plugin.rpc.datastore(key=member_key, string=member.to_json(), mode="create-or-replace")
+            member.save()
+
+        # save the prism
+        plugin.rpc.datastore(key=self._datastore_key,
+                             string=self.to_json(member_ids_only=True), mode="create-or-replace")
 
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
