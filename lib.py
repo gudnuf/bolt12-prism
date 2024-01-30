@@ -342,9 +342,11 @@ class PrismBinding:
             # oh, the record already exists. If if s
             dbmode = "must-replace"
 
-        members = Member.get_prism_members(plugin, prism_id)
+        prism = Prism.get(plugin=plugin, prism_id=prism_id)
+        members = prism.members
 
-        # members_dict =
+        if not prism:
+            raise Exception(f"Could not find prism: {prism_id}")
 
         binding_value = {
             "prism_id": prism_id,
