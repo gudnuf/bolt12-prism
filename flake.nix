@@ -94,6 +94,7 @@
               pysocks
               cryptography
               coincurve
+              jupyter
             ]))
           ];
           # Automatically run jupyter when entering the shell.
