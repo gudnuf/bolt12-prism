@@ -1,4 +1,4 @@
-#!/nix/store/asiphbpiy2gmidfm3xbwcikayhs66289-python3-3.11.7/bin/python3
+#!/usr/bin/env python3
 from pyln.client import Plugin, RpcError
 from lib import Prism, Member, PrismBinding
 
