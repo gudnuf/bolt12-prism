@@ -296,10 +296,10 @@ class PrismBinding:
     # bindings are
 
     @staticmethod
-    def get_binding_state(plugin: Plugin, offer_id: str, bolt_version="bolt12"):
+    def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
 
         plugin.log(f"got into get_binding_state.")
-        plugin.log(f"offer_id: {offer_id}'")
+        plugin.log(f"bind_to: {bind_to}'")
 
         types = ["bolt11", "bolt12"]
         if bolt_version not in types:
@@ -307,14 +307,14 @@ class PrismBinding:
                 "ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
         bindings_key = ["prism", prism_db_version,
-                        "bind", bolt_version, offer_id]
+                        "bind", bolt_version, bind_to]
 
         binding_records = plugin.rpc.listdatastore(
             key=bindings_key).get("datastore", [])
 
         if not binding_records:
             raise Exception(
-                "Could not find a prism binding for offer {offer_id}")
+                f"Could not find a prism binding for offer {bind_to}")
 
         # load the JSON string from the db.
         binding_state = json.loads(binding_records[0]['string'])
@@ -325,10 +325,10 @@ class PrismBinding:
     # but keyed on offer_id, as stored in the database.
 
     @staticmethod
-    def add_binding(plugin: Plugin, offer_id: str, prism_id: str,  bolt_version="bolt12"):
+    def add_binding(plugin: Plugin, bind_to: str, prism_id: str,  bolt_version="bolt12"):
 
         prism_binding_key = ["prism", prism_db_version,
-                             "bind", bolt_version, offer_id]
+                             "bind", bolt_version, bind_to]
 
         # first we need to see if there are any existing binding records for this prism_id/invoice_type
         # plugin.log(f"prism_binding_key: {prism_binding_key}")
@@ -343,6 +343,8 @@ class PrismBinding:
             dbmode = "must-replace"
 
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
+        if not prism:
+            raise Exception(f"Could not find prism: {prism_id}")
         members = prism.members
 
         if not prism:
@@ -359,7 +361,7 @@ class PrismBinding:
 
         response = {
             "status": dbmode,
-            "offer_id": offer_id,
+            "bind_to": bind_to,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
             "prism_members": [member.to_dict() for member in members]

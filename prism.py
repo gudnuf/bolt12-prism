@@ -98,16 +98,16 @@ def list_bindings(plugin, bolt_version="bolt12"):
 
 
 @plugin.method("prism-bindingshow")
-def get_binding(plugin, offer_id, bolt_version="bolt12"):
+def get_binding(plugin, bind_to, bolt_version="bolt12"):
     '''Show the bindings of a specific prism.'''
 
-    binding_state = PrismBinding.get_binding_state(plugin, offer_id)
+    binding_state = PrismBinding.get(plugin, bind_to, bolt_version)
 
     if not binding_state:
         raise Exception("ERROR: could not find a binding for this offer.")
 
     plugin.log(
-        f"INFO: prism-bindingshow executed for {bolt_version} offer '{offer_id}'")
+        f"INFO: prism-bindingshow executed for {bolt_version} offer '{bind_to}'")
 
     return binding_state
 
@@ -115,30 +115,30 @@ def get_binding(plugin, offer_id, bolt_version="bolt12"):
 
 
 @plugin.method("prism-bindingadd")
-def bindprism(plugin, prism_id, offer_id, bolt_version="bolt12"):
+def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
 
-    types = ["bolt11", "bolt12"]
-    if bolt_version not in types:
+    bolt_versions = ["bolt11", "bolt12"]
+    if bolt_version not in bolt_versions:
         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
 
-    offer = None
+    trigger = None
 
     # ensure the offer/invoice exists
     if bolt_version == "bolt12":
-        offer = plugin.rpc.listoffers(offer_id)
+        trigger = plugin.rpc.listoffers(offer_id=bind_to)["offers"]
 
-        if len(offer) == 0:
+        if [trigger] == []:
             raise Exception("ERROR: the bolt12 offer does not exist!")
 
     elif bolt_version == "bolt11":
-        offer = plugin.rpc.listinvoices(offer_id)
+        trigger = plugin.rpc.listinvoices(label=bind_to)["invoices"]
 
-        if offer is None:
+        if trigger == []:
             raise Exception("ERROR: the bolt11 invoice does not exist.")
 
     add_binding_result = PrismBinding.add_binding(
-        plugin=plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
+        plugin=plugin, bind_to=bind_to, prism_id=prism_id, bolt_version=bolt_version)
 
     return add_binding_result
 
