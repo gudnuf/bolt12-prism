@@ -111,12 +111,11 @@ By creating bindings, you can have a prism payout execute whenever a payment is 
 
 ### Create a binding
 
-`lightning-cli.sh --id=1 prism-bindingadd -k offer_id=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3`
+`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3 bolt_version="bolt12"`
 
 Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
 
 ```json
-./
 {
    "status": "must-replace",
    "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
@@ -158,7 +157,7 @@ Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism w
 
 Want to see all your bindings? Run `prism-bindinglist`
 
-`./lightning-cli.sh --id=1 prism-bindinglist`
+`lightning-cli -k prism-bindinglist bolt_version=bolt12`
 
 ```json
 {
@@ -175,8 +174,20 @@ Want to see all your bindings? Run `prism-bindinglist`
 }
 ```
 
+### Inspect a Binding
+`lightning-cli -k prism-bindingshow bolt_version=bolt12 bind_to=5b54e03e04d7393b16c8b88c90e5a8ba74ba5c29fc7f8319c03fd88864a74c21`
 
+```
+{
+   "prism_id": "d7e5523b-0362-4488-8c35-c3d01b511836",
+   "member_outlays": {
+      "64b159ac-43b4-4a43-abed-be18869529b2": "0msat",
+      "7f5b1682-4647-47e6-a735-31a1873deaf7": "0msat",
+      "d683ca89-91d9-412e-a2c4-9f2a2330ce68": "0msat"
+   }
+}
 
+```
 
 <!-- 
 ### Update an existing prism
