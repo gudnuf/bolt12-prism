@@ -3,7 +3,7 @@
 
 set -eu
 
-default_plugin_path=$(pwd)/prism.py
+default_plugin_path=$(pwd)/bolt12-prism.py
 
 # Check if .env file exists
 if [ -f ".env" ]; then
