@@ -340,6 +340,28 @@ class PrismBinding:
     # bindings are
 
     @staticmethod
+    def delete(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
+        # TODO: below code is repeated from PrismBinding.get()
+        types = ["bolt11", "bolt12"]
+        if bolt_version not in types:
+            raise Exception(
+                "ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+
+        bindings_key = ["prism", prism_db_version,
+                        "bind", bolt_version, bind_to]
+
+        try:
+            binding_records = plugin.rpc.deldatastore(
+            key=bindings_key)
+        except RpcError as e:
+            plugin.log(f"ERROR DELETING: {e}", 'error')
+        
+        if not binding_records:
+            raise Exception(
+                f"Could not find a prism binding for offer {bind_to}")
+
+
+    @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
 
         plugin.log(f"got into get_binding_state.")
