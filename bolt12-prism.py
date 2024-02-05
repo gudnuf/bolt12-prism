@@ -29,7 +29,7 @@ def createprism(plugin, members, prism_id=""):
     prism_json = prism.to_json()
 
     # return the prism json
-    return prism.to_json()
+    return prism.to_dict()
 
 
 @plugin.method("prism-show")
