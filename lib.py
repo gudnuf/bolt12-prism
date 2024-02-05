@@ -194,12 +194,14 @@ class Prism:
 
         for m in self.members:
             # total_msat * (member_split / total_split)
-            member_msat = math.floor(amount_msat * (m.split / self.total_splits))
+            member_msat = math.floor(
+                amount_msat * (m.split / self.total_splits))
 
             member_offer = m.destination
             # fetch invoice from memeber's BOLT 12
             try:
-                invoice = plugin.rpc.fetchinvoice(offer=member_offer, amount_msat=member_msat)
+                invoice = plugin.rpc.fetchinvoice(
+                    offer=member_offer, amount_msat=member_msat)
             except RpcError as e:
                 # TODO: add as error to results
                 plugin.log(f"error fetching invoice {e}", 'error')
@@ -214,13 +216,13 @@ class Prism:
             except RpcError as e:
                 # TODO: add as error to results
                 plugin.log(f"error paying prism member: {e}", 'error')
-            
+
             # map payment results to member ID for succuess/fail handling
             results[member_id] = payment
 
-        plugin.log(f"PRISM-PAY - ID={self.id}; BOLT=12: {len(self.members)} members; {amount_msat} msat total", 'info')
+        plugin.log(
+            f"PRISM-PAY - ID={self.id}; BOLT=12: {len(self.members)} members; {amount_msat} msat total", 'info')
         return results
-
 
     @staticmethod
     def from_db_string(plugin: Plugin, prism_string: str):
@@ -352,14 +354,13 @@ class PrismBinding:
 
         try:
             binding_records = plugin.rpc.deldatastore(
-            key=bindings_key)
+                key=bindings_key)
         except RpcError as e:
             plugin.log(f"ERROR DELETING: {e}", 'error')
-        
+
         if not binding_records:
             raise Exception(
                 f"Could not find a prism binding for offer {bind_to}")
-
 
     @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):

@@ -26,8 +26,6 @@ def createprism(plugin, members, prism_id=""):
     # save all the record to the database
     prism.save(plugin)
 
-    prism_json = prism.to_json()
-
     # return the prism json
     return prism.to_dict()
 
@@ -216,7 +214,8 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     '''Executes (pays-out) a prism.'''
 
-    plugin.log(f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
+    plugin.log(
+        f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
 
     if not isinstance(amount_msat, int):
         raise Exception("ERROR: amount_msat is the incorrect type.")
@@ -228,7 +227,8 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     # # TODO; first thing we should do here probably is update the Prism with new outlay values.
     # # that way we can immediately record/persist
     plugin.log(f"{amount_msat}")
-    plugin.log(f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
+    plugin.log(
+        f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
 
     prism = Prism.get(plugin, prism_id)
 
@@ -241,8 +241,8 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     pay_results = prism.pay(plugin, amount_msat=amount_msat)
 
     return pay_results
-    # # sum all the member split variables.
-    # sum_of_member_splits = sum(map(lambda member: member.split, prism.members))
+
+    # TODO: move the below code into prism.pay
 
     # # this for loop basically updates all the prism member outlay database records...
     # # we don't execute payments in this loop.
@@ -305,15 +305,10 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     #         else:
     #             raise Exception("ERROR: something went wrong. The payment type was not correct.")
 
-# # Function to find the binding with the specified offer_id
-# def find_binding_by_offer_id(bindings, offer_id, bolt_version="bolt12"):
-#     for binding in bindings:
-#         if binding.get("offer_id") == offer_id:
-#             return binding
-#     return None
-
 # # ABOUT: First, we check the db to see if there are any bindings associated with
 # # the invoice payment.
+
+
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
 
@@ -336,12 +331,12 @@ def on_payment(plugin, invoice_payment, **kwargs):
             bind_to = payment_label
             bind_type = "bolt11"
 
-
         plugin.log(f"BIND_TYPE: {bind_type}")
 
         amount_msat = invoice_payment['msat'][:-4]
 
-        plugin.log(f"payment_label:  {payment_label}; amount_msat:  {amount_msat}")
+        plugin.log(
+            f"payment_label:  {payment_label}; amount_msat:  {amount_msat}")
 
         # TODO: return PrismBinding.get as class member rather than json
         binding = PrismBinding.get(plugin, bind_to, bind_type)
@@ -351,7 +346,8 @@ def on_payment(plugin, invoice_payment, **kwargs):
         try:
             prism.pay(plugin=plugin, amount_msat=int(amount_msat))
         except Exception as e:
-            plugin.log(f"ERROR: there was a problem paying prism {binding.get('prism-id')}. Outlays may not have been updated properly. throwing...{e}")
+            plugin.log(
+                f"ERROR: there was a problem paying prism {binding.get('prism-id')}. Outlays may not have been updated properly. throwing...{e}")
 
         # invoices can only be paid once, so we delete the bolt11 binding
         if bind_type is "bolt11":
