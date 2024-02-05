@@ -212,33 +212,35 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 #     return return_value
 
 
-# @plugin.method("prism-executepayout")
-# def prism_execute(plugin, prism_id, amount_msat=0, label=""):
-#     '''Executes (pays-out) a prism.'''
+@plugin.method("prism-executepayout")
+def prism_execute(plugin, prism_id, amount_msat=0, label=""):
+    '''Executes (pays-out) a prism.'''
 
+    plugin.log(f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
 
-#     plugin.log(f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
+    if not isinstance(amount_msat, int):
+        raise Exception("ERROR: amount_msat is the incorrect type.")
 
-    # if not isinstance(amount_msat, int):
-    #     raise Exception("ERROR: amount_msat is the incorrect type.")
-
-    # if amount_msat <= 0:
-    #     plugin.log(f"ERROR: amount_msat must be greater than 0.")
-    #     raise Exception("ERROR: amount_msat must be greater than 0.")
+    if amount_msat <= 0:
+        plugin.log(f"ERROR: amount_msat must be greater than 0.")
+        raise Exception("ERROR: amount_msat must be greater than 0.")
 
     # # TODO; first thing we should do here probably is update the Prism with new outlay values.
     # # that way we can immediately record/persist
-    # plugin.log(f"{amount_msat}")
-    # plugin.log(f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
+    plugin.log(f"{amount_msat}")
+    plugin.log(f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
 
-    # prism = Prism.find_unique(plugin, prism_id)
+    prism = Prism.get(plugin, prism_id)
 
-    # if prism is None:
-    #     raise Exception("ERROR: could not find prism.")
+    if prism is None:
+        raise Exception("ERROR: could not find prism.")
 
     # if prism.members is None:
     #     raise Exception(f"ERROR: Could not extract prism_members for prism {prism_id}")
+    plugin.log("PAYING")
+    pay_results = prism.pay(plugin, amount_msat=amount_msat)
 
+    return pay_results
     # # sum all the member split variables.
     # sum_of_member_splits = sum(map(lambda member: member.split, prism.members))
 
@@ -312,56 +314,50 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 
 # # ABOUT: First, we check the db to see if there are any bindings associated with
 # # the invoice payment.
-# @plugin.subscribe("invoice_payment")
-# def on_payment(plugin, invoice_payment, **kwargs):
+@plugin.subscribe("invoice_payment")
+def on_payment(plugin, invoice_payment, **kwargs):
 
-#     plugin.log(f"INFO: executing invoice_payment {invoice_payment}")
+    plugin.log(f"Executing invoice_payment {invoice_payment}", 'info')
 
-#     try:
-#         payment_label = invoice_payment["label"]
-#         invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
-#         bind_type = "bolt12"
-#         offer_id = None
+    try:
+        payment_label = invoice_payment["label"]
 
-#         if invoice is not None:
-#             if "local_offer_id" in invoice:
-#                 offer_id = invoice["local_offer_id"]
-#                 bind_type = "bolt12"
-#             else:
-#                 bind_type = "bolt11"
-#         else:
-#             # invoice doesn't exist.
-#             raise Exception("ERROR: the invoice does not exist. This shoulnd't happen.")
+        # invoices will always have a unique label
+        invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
 
-#         amount_msat = invoice_payment['msat'][:-4]
-#         plugin.log(f"payment_label:  {payment_label}")
-#         plugin.log(f"amount_msat:  {amount_msat}")
-#         plugin.log(f"bind_type:  {bind_type}")
+        bind_to = None
+        bind_type = None
 
-#         prism_bindings = list_offer_bindings(plugin, bolt_version=bolt_version)
-
-#         # Find the desired binding
-#         matching_binding = find_binding_by_offer_id(prism_bindings, offer_id)
-
-#         plugin.log(f"matching_binding {matching_binding}")
+        # invoices will likely be generated from BOLT 12
+        if "local_offer_id" in invoice:
+            bind_to = invoice["local_offer_id"]
+            bind_type = "bolt12"
+        else:
+            bind_to = payment_label
+            bind_type = "bolt11"
 
 
-#         #binding = get_binding(plugin, offer_id, bind_type)
-#         #payment_label)["invoices"][0]
-#         #get_binding(plugin, offer_id, bind_type)
+        plugin.log(f"BIND_TYPE: {bind_type}")
 
-#         #plugin.log(f"prism_binding {prism_binding.to_dict()}")
+        amount_msat = invoice_payment['msat'][:-4]
 
-#         # if binding is not None:
-#         #     plugin.log(f"binding from get_binding:  {binding.to_json()}")
-#         # else:
-#         #     plugin.log(f"ERROR: could not find the specific binding.")
+        plugin.log(f"payment_label:  {payment_label}; amount_msat:  {amount_msat}")
+
+        # TODO: return PrismBinding.get as class member rather than json
+        binding = PrismBinding.get(plugin, bind_to, bind_type)
+
+        prism = Prism.get(plugin=plugin, prism_id=binding.get('prism_id'))
+
+        try:
+            prism.pay(plugin=plugin, amount_msat=int(amount_msat))
+        except Exception as e:
+            plugin.log(f"ERROR: there was a problem paying prism {binding.get('prism-id')}. Outlays may not have been updated properly. throwing...{e}")
 
 #         # for prism_id in binding.prism_ids:
 #         #     prism_execute(prism_id, int(amount_msat), payment_label)
 
-#     except Exception as e:
-#         raise Exception("Payment error: {}".format(e))
+    except Exception as e:
+        raise Exception("Payment error: {}".format(e))
 
 
 plugin.run()  # Run our plugin
