@@ -1,9 +1,10 @@
 from typing import List
-from pyln.client import Plugin, Millisatoshi
+from pyln.client import Plugin, Millisatoshi, RpcError
 import re
 import os
 import uuid
 import json
+import math
 
 # TODO: find a way to define this dynamically or decide that doesn't make sense to do
 prism_db_version = "v2"
@@ -119,20 +120,20 @@ class Member:
     # this static method returns a list of Members for a given prism_id
     # the result of which can be used in the Prism Constructor.
 
-    @staticmethod
-    def get_prism_members(plugin: Plugin, prism_id):
-        prism_key = ["prism", prism_db_version, "prism", prism_id]
-        member_records = plugin.rpc.listdatastore(
-            key=prism_key).get("datastore")
+    # @staticmethod
+    # def get_prism_members(plugin: Plugin, prism_id):
+    #     prism_key = ["prism", prism_db_version, "prism", prism_id]
+    #     member_records = plugin.rpc.listdatastore(
+    #         key=prism_key).get("datastore")
 
-        members = []
+    #     members = []
 
-        for member_record in member_records:
-            member_dict = json.loads(member_record['string'])
-            member = Member(prism_id=prism_id, member_dict=member_dict)
-            members.append(member)
+    #     for member_record in member_records:
+    #         member_dict = json.loads(member_record['string'])
+    #         member = Member(prism_id=prism_id, member_dict=member_dict)
+    #         members.append(member)
 
-        return members
+    #     return members
 
 # TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
 
@@ -177,6 +178,49 @@ class Prism:
         # save the prism
         plugin.rpc.datastore(key=self.datastore_key(id=self.id),
                              string=self.to_json(member_ids_only=True), mode="create-or-replace")
+
+    @property
+    def total_splits(self) -> int:
+        """sum each members split"""
+        return sum([m.split for m in self.members])
+
+    def pay(self, plugin: Plugin, amount_msat: int):
+        """
+        Pay each member in the prism their respective share of `amount_msat`
+        """
+
+        pay_queue = {}
+        results = {}
+
+        for m in self.members:
+            # total_msat * (member_split / total_split)
+            member_msat = math.floor(amount_msat * (m.split / self.total_splits))
+
+            member_offer = m.destination
+            # fetch invoice from memeber's BOLT 12
+            try:
+                invoice = plugin.rpc.fetchinvoice(offer=member_offer, amount_msat=member_msat)
+            except RpcError as e:
+                # TODO: add as error to results
+                plugin.log(f"error fetching invoice {e}", 'error')
+            # TODO: handle keysend
+
+            # map member ids to invoices
+            pay_queue[m.id] = invoice.get("invoice")
+
+        for member_id, invoice in pay_queue.items():
+            try:
+                payment = plugin.rpc.pay(bolt11=invoice)
+            except RpcError as e:
+                # TODO: add as error to results
+                plugin.log(f"error paying prism member: {e}", 'error')
+            
+            # map payment results to member ID for succuess/fail handling
+            results[member_id] = payment
+
+        plugin.log(f"PRISM-PAY - ID={self.id}; BOLT=12: {len(self.members)} members; {amount_msat} msat total", 'info')
+        return results
+
 
     @staticmethod
     def from_db_string(plugin: Plugin, prism_string: str):
