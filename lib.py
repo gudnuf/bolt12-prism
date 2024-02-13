@@ -20,74 +20,6 @@ if os.path.isfile(plugin_out):
 
 class Member:
     @staticmethod
-    def get(plugin: Plugin, member_id: str):
-        member_record = plugin.rpc.listdatastore(
-            key=["prism", prism_db_version, "member", member_id])["datastore"]
-
-        if not member_record:
-            return None
-
-        member_dict = json.loads(member_record[0]["string"])
-        return Member(plugin, member_dict)
-
-    @staticmethod
-    def find_many(plugin: Plugin, member_ids: List[str]):
-        members = []
-        for member_id in member_ids:
-            member = Member.get(plugin, member_id)
-            if member:
-                members.append(member)
-            else:
-                raise Exception(f"Could not find member: {member_id}")
-        return members
-
-    def __init__(self, plugin: Plugin, member_dict=None):
-        self.validate(member_dict)
-
-        self.id = member_dict.get("member_id") if member_dict.get(
-            "member_id") else str(uuid.uuid4())
-        self.label: str = member_dict.get("label")
-        self.destination: str = member_dict.get("destination")
-        self.split: str = member_dict.get("split")
-        self.fees_incurred_by: str = member_dict.get(
-            "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-        self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get(
-            "payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
-
-        self._plugin = plugin
-
-        self._datastore_key = ["prism", prism_db_version, "member", self.id]
-
-    def save(self):
-        self._plugin.log(f"Saving member: {self.id}")
-        self._plugin.rpc.datastore(
-            key=self._datastore_key, string=self.to_json(), mode="create-or-replace")
-
-    def to_json(self):
-        return json.dumps({
-            "member_id": self.id,
-            "label": self.label,
-            "destination": self.destination,
-            "split": self.split,
-            "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold": self.payout_threshold
-        })
-
-    def to_dict(self):
-        return {
-            "member_id": self.id,
-            "label": self.label,
-            "destination": self.destination,
-            "split": self.split,
-            "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold": self.payout_threshold
-        }
-
-    @property
-    def datastore_key(self):
-        return self._datastore_key
-
-    @staticmethod
     def validate(member):
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
@@ -117,6 +49,76 @@ class Member:
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
+    @staticmethod
+    def get(plugin: Plugin, member_id: str):
+        member_record = plugin.rpc.listdatastore(
+            key=["prism", prism_db_version, "member", member_id])["datastore"]
+
+        if not member_record:
+            return None
+
+        member_dict = json.loads(member_record[0]["string"])
+        return Member(plugin, member_dict)
+
+    @staticmethod
+    def find_many(plugin: Plugin, member_ids: List[str]):
+        members = []
+        for member_id in member_ids:
+            member = Member.get(plugin, member_id)
+            if member:
+                members.append(member)
+            else:
+                raise Exception(f"Could not find member: {member_id}")
+        return members
+
+    @property
+    def datastore_key(self):
+        return self._datastore_key
+
+    def __init__(self, plugin: Plugin, member_dict=None):
+        self.validate(member_dict)
+
+        self.id = member_dict.get("member_id") if member_dict.get(
+            "member_id") else str(uuid.uuid4())
+        self.label: str = member_dict.get("label")
+        self.destination: str = member_dict.get("destination")
+        self.split: str = member_dict.get("split")
+        self.fees_incurred_by: str = member_dict.get(
+            "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
+        self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get(
+            "payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
+        self.outlay = member_dict.get('outlay', 0)
+
+        self._plugin = plugin
+
+        self._datastore_key = ["prism", prism_db_version, "member", self.id]
+
+    def save(self):
+        self._plugin.log(f"Saving member: {self.id}")
+        self._plugin.rpc.datastore(
+            key=self._datastore_key, string=self.to_json(), mode="create-or-replace")
+
+    def to_json(self):
+        return json.dumps({
+            "member_id": self.id,
+            "label": self.label,
+            "destination": self.destination,
+            "split": self.split,
+            # TODO: shold this be at the prism level instead?
+            "fees_incurred_by": self.fees_incurred_by,
+            "payout_threshold": self.payout_threshold
+        })
+
+    def to_dict(self):
+        return {
+            "member_id": self.id,
+            "label": self.label,
+            "destination": self.destination,
+            "split": self.split,
+            "fees_incurred_by": self.fees_incurred_by,
+            "payout_threshold": self.payout_threshold
+        }
+
     # this static method returns a list of Members for a given prism_id
     # the result of which can be used in the Prism Constructor.
 
@@ -139,91 +141,9 @@ class Member:
 
 
 class Prism:
-    def __init__(self, plugin: Plugin, prism_id: str = None, members: List[Member] = None):
-        self.validate(members)
-        self.members = members
-        self.id = prism_id if prism_id else str(uuid.uuid4())
-        self._plugin = plugin
-
     @staticmethod
     def datastore_key(id):
         return ["prism", prism_db_version, "prism", id]
-
-    def to_json(self, member_ids_only=False):
-        members = []
-        if member_ids_only:
-            members = [member.id for member in self.members]
-        else:
-            members = [member.to_dict() for member in self.members]
-        return json.dumps({
-            "prism_id": self.id,
-            "prism_members": members
-        })
-
-    def to_dict(self):
-        return {
-            "prism_id": self.id,
-            "prism_members": [member.to_dict() for member in self.members]
-        }
-
-    # save a Prism object and members to the database.
-    # these records are stored under prism,prism_version,prism,prism_id_a
-
-    def save(self):
-        self._plugin.log(f"Saving prism: {self.id}")
-
-        # save each prism member
-        for member in self.members:
-            member.save()
-
-        # save the prism
-        self._plugin.rpc.datastore(key=self.datastore_key(id=self.id),
-                             string=self.to_json(member_ids_only=True), mode="create-or-replace")
-
-    @property
-    def total_splits(self) -> int:
-        """sum each members split"""
-        return sum([m.split for m in self.members])
-
-    def pay(self, amount_msat: int):
-        """
-        Pay each member in the prism their respective share of `amount_msat`
-        """
-
-        pay_queue = {}
-        results = {}
-
-        for m in self.members:
-            # total_msat * (member_split / total_split)
-            member_msat = math.floor(
-                amount_msat * (m.split / self.total_splits))
-
-            member_offer = m.destination
-            # fetch invoice from memeber's BOLT 12
-            try:
-                invoice = self._plugin.rpc.fetchinvoice(
-                    offer=member_offer, amount_msat=member_msat)
-            except RpcError as e:
-                # TODO: add as error to results
-                self._plugin.log(f"error fetching invoice {e}", 'error')
-            # TODO: handle keysend
-
-            # map member ids to invoices
-            pay_queue[m.id] = invoice.get("invoice")
-
-        for member_id, invoice in pay_queue.items():
-            try:
-                payment = self._plugin.rpc.pay(bolt11=invoice)
-            except RpcError as e:
-                # TODO: add as error to results
-                self._plugin.log(f"error paying prism member: {e}", 'error')
-
-            # map payment results to member ID for succuess/fail handling
-            results[member_id] = payment
-
-        self._plugin.log(
-            f"PRISM-PAY - ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')
-        return results
 
     @staticmethod
     def from_db_string(plugin: Plugin, prism_string: str):
@@ -265,84 +185,90 @@ class Prism:
         if not isinstance(members, list):
             raise ValueError("Members must be a list.")
 
-
-class PrismBinding:
-    def __init__(self, plugin: Plugin, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
-
-        self._plugin = plugin
-        self.offer_id = offer_id
-        self.bolt_version = bolt_version
-        self.prism_id = prism_id
-        self.members = None
-
-        if binding_dict:
-            self.offer_id = binding_dict.get("offer_id")
-            self.members = binding_dict
-
-        self._datastore_key = ["prism", prism_db_version,
-                               "bind", bolt_version, offer_id]
-
     @property
-    def datastore_key(self):
-        return self._datastore_key
+    def total_splits(self) -> int:
+        """sum each members split"""
+        return sum([m.split for m in self.members])
+
+    def __init__(self, plugin: Plugin, prism_id: str = None, members: List[Member] = None):
+        self.validate(members)
+        self.members = members
+        self.id = prism_id if prism_id else str(uuid.uuid4())
+        self._plugin = plugin
+
+    def to_json(self, member_ids_only=False):
+        members = []
+        if member_ids_only:
+            members = [member.id for member in self.members]
+        else:
+            members = [member.to_dict() for member in self.members]
+        return json.dumps({
+            "prism_id": self.id,
+            "prism_members": members
+        })
 
     def to_dict(self):
         return {
-            "offer_id": self.offer_id,
-            "prism_id": self.prism_id,
+            "prism_id": self.id,
+            "prism_members": [member.to_dict() for member in self.members]
         }
 
-    def to_json(self):
-        return {
-            "offer_id": self.offer_id,
-            "prism_id": self.prism_id
-        }
+    # save a Prism object and members to the database.
+    # these records are stored under prism,prism_version,prism,prism_id_a
 
-    # # this method finds any prismbindings in the db then returns one and only
-    # # one PrismBinding object. Note this function isn't super efficient due to the
-    # # prism_bindings in the db being keyed on offer_id rather than prism_id.
-    # # this function takes a prism ID and returns the assocaited PrismBinding object
-    # @staticmethod
-    # def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+    def save(self):
+        self._plugin.log(f"Saving prism: {self.id}")
 
-    #     prism_binding = None
+        # save each prism member
+        for member in self.members:
+            member.save()
 
-    #     # so, need to pull all prism binding records and iterate over each one
-    #     # to see if it contains the current prism_id is the content of the record.
-    #     # this seems odd; but required since invoice_payment
-    #     prism_records_key = [ "prism", prism_db_version, "bind", bolt_version ]
+        # save the prism
+        self._plugin.rpc.datastore(key=self.datastore_key(id=self.id),
+                                   string=self.to_json(member_ids_only=True), mode="create-or-replace")
 
-    #     plugin.log(f"prism_records_key: {prism_records_key}")
+    def pay(self, amount_msat: int):
+        """
+        Pay each member in the prism their respective share of `amount_msat`
+        """
 
-    #     prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+        pay_queue = {}
+        results = {}
 
-    #     plugin.log(f"prism_binding_records: {prism_binding_records}")
+        for m in self.members:
+            # total_msat * (member_split / total_split)
+            member_msat = math.floor(
+                amount_msat * (m.split / self.total_splits))
 
-    #     relevant_offer_ids_for_prism = []
-    #     prism_binding = None
-    #     offer_id = None
+            member_offer = m.destination
+            # fetch invoice from memeber's BOLT 12
+            try:
+                invoice = self._plugin.rpc.fetchinvoice(
+                    offer=member_offer, amount_msat=member_msat)
+            except RpcError as e:
+                # TODO: add as error to results
+                self._plugin.log(f"error fetching invoice {e}", 'error')
+            # TODO: handle keysend
 
-    #     for binding_record in prism_binding_records:
-    #         list_of_prisms_in_binding_record = json.dumps(binding_record['string'])
-    #         plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
+            # map member ids to invoices
+            pay_queue[m.id] = invoice.get("invoice")
 
-    #         if prism_id in list_of_prisms_in_binding_record:
-    #             offer_id = binding_record["key"][3]
-    #             relevant_offer_ids_for_prism.append(offer_id)
+        for member_id, invoice in pay_queue.items():
+            try:
+                payment = self._plugin.rpc.pay(bolt11=invoice)
+            except RpcError as e:
+                # TODO: add as error to results
+                self._plugin.log(f"error paying prism member: {e}", 'error')
 
-    #     plugin.log(f"get_binding->offer_id: {offer_id}")
-    #     plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
-    #     plugin.log(f"get_binding->bolt_version: {bolt_version}")
+            # map payment results to member ID for succuess/fail handling
+            results[member_id] = payment
 
-    #     prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
+        self._plugin.log(
+            f"PRISM-PAY - ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')
+        return results
 
-    #     plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
 
-    #     return prism_binding
-
-    # this method shows the current state of  a specific binding.
-    # bindings are
-
+class PrismBinding:
     @staticmethod
     def delete(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
         # TODO: below code is repeated from PrismBinding.get()
@@ -383,7 +309,7 @@ class PrismBinding:
 
         if not binding_records:
             raise Exception(
-                f"Could not find a prism binding for offer {bind_to}")
+                f"Could not find: {bindings_key}")
 
         # load the JSON string from the db.
         binding_state = json.loads(binding_records[0]['string'])
@@ -462,3 +388,79 @@ class PrismBinding:
             bindings.append(binding)
 
         return bindings
+
+    @property
+    def datastore_key(self):
+        return self._datastore_key
+
+    def __init__(self, plugin: Plugin, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
+
+        self._plugin = plugin
+        self.offer_id = offer_id
+        self.bolt_version = bolt_version
+        self.prism_id = prism_id
+        self.members = None
+
+        if binding_dict:
+            self.offer_id = binding_dict.get("offer_id")
+            self.members = binding_dict
+
+        self._datastore_key = ["prism", prism_db_version,
+                               "bind", bolt_version, offer_id]
+
+    def to_dict(self):
+        return {
+            "offer_id": self.offer_id,
+            "prism_id": self.prism_id,
+        }
+
+    def to_json(self):
+        return {
+            "offer_id": self.offer_id,
+            "prism_id": self.prism_id
+        }
+
+    # # this method finds any prismbindings in the db then returns one and only
+    # # one PrismBinding object. Note this function isn't super efficient due to the
+    # # prism_bindings in the db being keyed on offer_id rather than prism_id.
+    # # this function takes a prism ID and returns the assocaited PrismBinding object
+    # @staticmethod
+    # def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
+
+    #     prism_binding = None
+
+    #     # so, need to pull all prism binding records and iterate over each one
+    #     # to see if it contains the current prism_id is the content of the record.
+    #     # this seems odd; but required since invoice_payment
+    #     prism_records_key = [ "prism", prism_db_version, "bind", bolt_version ]
+
+    #     plugin.log(f"prism_records_key: {prism_records_key}")
+
+    #     prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
+
+    #     plugin.log(f"prism_binding_records: {prism_binding_records}")
+
+    #     relevant_offer_ids_for_prism = []
+    #     prism_binding = None
+    #     offer_id = None
+
+    #     for binding_record in prism_binding_records:
+    #         list_of_prisms_in_binding_record = json.dumps(binding_record['string'])
+    #         plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
+
+    #         if prism_id in list_of_prisms_in_binding_record:
+    #             offer_id = binding_record["key"][3]
+    #             relevant_offer_ids_for_prism.append(offer_id)
+
+    #     plugin.log(f"get_binding->offer_id: {offer_id}")
+    #     plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
+    #     plugin.log(f"get_binding->bolt_version: {bolt_version}")
+
+    #     prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
+
+    #     plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
+
+    #     return prism_binding
+
+    # this method shows the current state of  a specific binding.
+    # bindings are
