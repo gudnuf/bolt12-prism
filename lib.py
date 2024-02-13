@@ -139,10 +139,11 @@ class Member:
 
 
 class Prism:
-    def __init__(self, prism_id: str = None, members: List[Member] = None):
+    def __init__(self, plugin: Plugin, prism_id: str = None, members: List[Member] = None):
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
+        self._plugin = plugin
 
     @staticmethod
     def datastore_key(id):
@@ -168,15 +169,15 @@ class Prism:
     # save a Prism object and members to the database.
     # these records are stored under prism,prism_version,prism,prism_id_a
 
-    def save(self, plugin):
-        plugin.log(f"Saving prism: {self.id}")
+    def save(self):
+        self._plugin.log(f"Saving prism: {self.id}")
 
         # save each prism member
         for member in self.members:
             member.save()
 
         # save the prism
-        plugin.rpc.datastore(key=self.datastore_key(id=self.id),
+        self._plugin.rpc.datastore(key=self.datastore_key(id=self.id),
                              string=self.to_json(member_ids_only=True), mode="create-or-replace")
 
     @property
@@ -184,7 +185,7 @@ class Prism:
         """sum each members split"""
         return sum([m.split for m in self.members])
 
-    def pay(self, plugin: Plugin, amount_msat: int):
+    def pay(self, amount_msat: int):
         """
         Pay each member in the prism their respective share of `amount_msat`
         """
@@ -200,11 +201,11 @@ class Prism:
             member_offer = m.destination
             # fetch invoice from memeber's BOLT 12
             try:
-                invoice = plugin.rpc.fetchinvoice(
+                invoice = self._plugin.rpc.fetchinvoice(
                     offer=member_offer, amount_msat=member_msat)
             except RpcError as e:
                 # TODO: add as error to results
-                plugin.log(f"error fetching invoice {e}", 'error')
+                self._plugin.log(f"error fetching invoice {e}", 'error')
             # TODO: handle keysend
 
             # map member ids to invoices
@@ -212,16 +213,16 @@ class Prism:
 
         for member_id, invoice in pay_queue.items():
             try:
-                payment = plugin.rpc.pay(bolt11=invoice)
+                payment = self._plugin.rpc.pay(bolt11=invoice)
             except RpcError as e:
                 # TODO: add as error to results
-                plugin.log(f"error paying prism member: {e}", 'error')
+                self._plugin.log(f"error paying prism member: {e}", 'error')
 
             # map payment results to member ID for succuess/fail handling
             results[member_id] = payment
 
-        plugin.log(
-            f"PRISM-PAY - ID={self.id}; BOLT=12: {len(self.members)} members; {amount_msat} msat total", 'info')
+        self._plugin.log(
+            f"PRISM-PAY - ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')
         return results
 
     @staticmethod
@@ -232,7 +233,7 @@ class Prism:
 
         members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
-        return Prism(prism_id=prism_id, members=members)
+        return Prism(plugin, prism_id=prism_id, members=members)
 
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -266,8 +267,9 @@ class Prism:
 
 
 class PrismBinding:
-    def __init__(self, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
+    def __init__(self, plugin: Plugin, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
 
+        self._plugin = plugin
         self.offer_id = offer_id
         self.bolt_version = bolt_version
         self.prism_id = prism_id
@@ -456,7 +458,7 @@ class PrismBinding:
             binding_record_value_dict = json.loads(binding_record['string'])
             prism_id = binding_record_value_dict["prism_id"]
             binding = PrismBinding(
-                offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
+                plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
             bindings.append(binding)
 
         return bindings
