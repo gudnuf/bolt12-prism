@@ -269,6 +269,8 @@ class Prism:
 
 
 class PrismBinding:
+    prism: Prism
+
     @staticmethod
     def delete(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
         # TODO: below code is repeated from PrismBinding.get()
@@ -291,6 +293,21 @@ class PrismBinding:
                 f"Could not find a prism binding for offer {bind_to}")
 
     @staticmethod
+    def from_db_string(plugin: Plugin, string: str, bind_to: str, bolt_version: str):
+        parsed = json.loads(string)
+
+        prism_id = parsed.get('prism_id', None)
+        member_outlays = parsed.get('member_outlays', None)
+
+        if not prism_id:
+            raise Exception("Invalid binding. Missing prism_id")
+
+        if not member_outlays:
+            raise Exception("Invalid binding. Missing member_outlays")
+
+        return PrismBinding(plugin, outlays=member_outlays, offer_id=bind_to, prism_id=prism_id, bolt_version=bolt_version)
+
+    @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
 
         plugin.log(f"got into get_binding_state.")
@@ -311,10 +328,7 @@ class PrismBinding:
             raise Exception(
                 f"Could not find: {bindings_key}")
 
-        # load the JSON string from the db.
-        binding_state = json.loads(binding_records[0]['string'])
-
-        return binding_state
+        return PrismBinding.from_db_string(plugin, string=binding_records[0].get('string'), bind_to=bind_to, bolt_version=bolt_version)
 
     # is is the revers of the method above. It return all prism-bindings,
     # but keyed on offer_id, as stored in the database.
@@ -381,10 +395,8 @@ class PrismBinding:
         for binding_record in binding_records:
             offer_id = binding_record["key"][4]
             plugin.log(f"offer_id: {offer_id}")
-            binding_record_value_dict = json.loads(binding_record['string'])
-            prism_id = binding_record_value_dict["prism_id"]
-            binding = PrismBinding(
-                plugin, offer_id=offer_id, prism_id=prism_id, bolt_version=bolt_version)
+            binding_record_str = binding_record['string']
+            binding = PrismBinding.from_db_string(plugin, string=binding_record_str, bind_to=offer_id, bolt_version=bolt_version) 
             bindings.append(binding)
 
         return bindings
@@ -393,13 +405,15 @@ class PrismBinding:
     def datastore_key(self):
         return self._datastore_key
 
-    def __init__(self, plugin: Plugin, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
+    def __init__(self, plugin: Plugin, outlays, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
 
         self._plugin = plugin
         self.offer_id = offer_id
         self.bolt_version = bolt_version
-        self.prism_id = prism_id
         self.members = None
+
+        self.prism = Prism.get(plugin, prism_id)
+        self.outlays = outlays
 
         if binding_dict:
             self.offer_id = binding_dict.get("offer_id")
@@ -411,13 +425,14 @@ class PrismBinding:
     def to_dict(self):
         return {
             "offer_id": self.offer_id,
-            "prism_id": self.prism_id,
+            "prism_id": self.prism.id,
+            "member_outlays": self.outlays
         }
 
     def to_json(self):
         return {
             "offer_id": self.offer_id,
-            "prism_id": self.prism_id
+            "prism_id": self.prism.id
         }
 
     # # this method finds any prismbindings in the db then returns one and only

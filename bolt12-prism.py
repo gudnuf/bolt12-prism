@@ -99,15 +99,15 @@ def list_bindings(plugin, bolt_version="bolt12"):
 def get_binding(plugin, bind_to, bolt_version="bolt12"):
     '''Show the bindings of a specific prism.'''
 
-    binding_state = PrismBinding.get(plugin, bind_to, bolt_version)
+    binding = PrismBinding.get(plugin, bind_to, bolt_version)
 
-    if not binding_state:
+    if not binding:
         raise Exception("ERROR: could not find a binding for this offer.")
 
     plugin.log(
-        f"INFO: prism-bindingshow executed for {bolt_version} offer '{bind_to}'")
+        f"INFO: prism-bindingsbindinghow executed for {bolt_version} offer '{bind_to}'")
 
-    return binding_state
+    return binding.to_dict()
 
 # adds a binding to the database.
 
@@ -341,13 +341,13 @@ def on_payment(plugin, invoice_payment, **kwargs):
         # TODO: return PrismBinding.get as class member rather than json
         binding = PrismBinding.get(plugin, bind_to, bind_type)
 
-        prism = Prism.get(plugin=plugin, prism_id=binding.get('prism_id'))
+        prism = Prism.get(plugin=plugin, prism_id=binding.prism.id)
 
         try:
             prism.pay(amount_msat=int(amount_msat))
         except Exception as e:
             plugin.log(
-                f"ERROR: there was a problem paying prism {binding.get('prism-id')}. Outlays may not have been updated properly. throwing...{e}")
+                f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
 
         # invoices can only be paid once, so we delete the bolt11 binding
         if bind_type is "bolt11":
