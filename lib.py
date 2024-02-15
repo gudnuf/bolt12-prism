@@ -435,6 +435,78 @@ class PrismBinding:
             "prism_id": self.prism.id
         }
 
+    def save(self):
+        string = json.dumps({
+            "prism_id": self.prism.id,
+            "member_outlays": self.outlays
+        })
+
+        self._plugin.rpc.datastore(
+            key=self._datastore_key, string=string, mode="must-replace")
+
+    def increment_outlays(self, amount_msat):
+        self._plugin.log("INCREMENTING OUTLAYS")
+        new_outlays = {}
+        for member_id, outlay in self.outlays.items():
+            # find member in the Prism by the member id in the outlays
+            m = [m for m in self.prism.members if m.id == member_id][0]
+
+            if not m:
+                raise Exception(
+                    f"Binding and prism in different states. Expected to find member {member_id} in prism {self.prism.id}")
+
+            member_msat = math.floor(
+                amount_msat * (m.split / self.prism.total_splits))
+
+            new_amount = Millisatoshi(outlay) + Millisatoshi(member_msat)
+
+            self._plugin.log(
+                f"Updating member {member_id} outlay to {new_amount}")
+
+            new_outlays[member_id] = new_amount
+
+        self.outlays = new_outlays
+
+        self.save()
+
+    def update_outlays(self, payment_results):
+        new_outlays = {}
+        for member_id, outlay in self.outlays.items():
+            payment_result = payment_results.get(member_id, None)
+
+            if not payment_result:
+                raise Exception(
+                    f"Expected to find a payment result for member {member_id}")
+
+            status = payment_result["status"]
+            if status != "complete":
+                self._plugin.log(f"Failed to pay member {member_id}")
+                new_outlays[member_id] = outlay
+                continue
+
+            payment_amount = payment_result.get("amount_sent_msat", 0)
+
+            new_outlay = Millisatoshi(outlay) - Millisatoshi(payment_amount)
+
+            new_outlays[member_id] = new_outlay
+
+        self._plugin.log(f"NEW OUTLAYS: {new_outlays}")
+        self.outlays = new_outlays
+
+        self.save()
+
+    def pay(self, amount_msat):
+        self._plugin.log(f"PAYING {self.members}", )
+
+        self.increment_outlays(amount_msat)
+
+        payment_results = self.prism.pay(amount_msat)
+
+        self._plugin.log(f"PAYMENT RESULTS: {payment_results}")
+
+        # TODO: better name for this function
+        self.update_outlays(payment_results)
+
     # # this method finds any prismbindings in the db then returns one and only
     # # one PrismBinding object. Note this function isn't super efficient due to the
     # # prism_bindings in the db being keyed on offer_id rather than prism_id.
