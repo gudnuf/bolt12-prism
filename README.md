@@ -1,183 +1,217 @@
 # BOLT 12 Prism Plugin
 
-A CLN plugin for creating and interacting with BOLT 12 prisms.
+A CLN plugin for creating and interacting with prisms. This plugin supports receiving to BOLT12 offers or BOLT11 invoices, and paying prism out to either BOLT12 or keysend destinations. In addition, prism payouts may be executed manually (e.g., via another CLN plugin).
 
 ![roygbiv](https://github.com/daGoodenough/bolt12-prism/assets/108303703/2c4ba75d-b0ab-4c3f-a5c4-2202716a04a0)
 
-_BOLT 12 is currently experimental and you will need to add the **--experimental-offers** flag when starting lightningd_
+> _BOLT12 is currently experimental and you will need to add the **--experimental-offers** flag when starting lightningd_
 
 ## Background
 
-This started as the winning hackathon project at btc++ 2023 in Austin, Tx.
+This started as the winning hackathon project at [bitcoin++](https://btcpp.dev/) 2023 in Austin, Tx.
 
 Some other projects that compliment this one are
 
-- [roygbiv.money](https://roygbiv.money) where you can experiment with prisms in regtest
-- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms
-- [roygbiv-stack](https://github.com/farscapian/roygbiv-stack) to deploy CLN nodes running prisms on any network
-- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend)
+- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms.
+- [lnplay](https://github.com/farscapian/lnplay) which integrates the prism plugin
+- [roygbiv-frontend](https://github.com/johngribbin/ROYGBIV-frontend) helps you manage BOLT12 prisms. TODO hackathon idea: needs UI update to v2 Prisms.
 
 ## Getting Started
 
-### Verify your node can create offers.
-
-1. `lightning-cli offer any label`
-2. You should get a response like this:
-
-   ```
-   {
-      "offer_id": "75a463ad38b27e83be53c802d3419592e005e130d29d5ea09b788d68816a46ff",
-      "active": true,
-      "single_use": false,
-      "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-      "used": false,
-      "created": true
-   }
-   ```
-
-## Starting the Plugin
+### Starting the Plugin
 
 There are 3 ways to start a CLN plugin...
+
 ### Add to Your Config
+
 Find your c-lightning config file and add
 
-`plugin=/path/to/prism-plugin.py`
+`plugin=/path/to/bolt12-prism.py`
 
 ### Manually start the plugin
 
-`lightning-cli plugin start /path/to/prism-plugin.py`
+`lightning-cli plugin start /path/to/bolt12-prism.py`
 
 ### Run on startup
 
-`lightningd --experimental-offers --plugin=/path/to/prism-plugin.py`
+`lightningd --experimental-offers --plugin=/path/to/bolt12-prism.py`
 
 ## Using the plugin
 
-There are currently four methods available for interacting with prisms: `createprism`, `listprisms`, `updateprism` and `deleteprism`
+### Create a prism
 
-### createprism
+`prism-create -k members=members_json prism_id=prism-xxx`
 
-**createprism** _label members[]_
+The `prism_id` is optional. If left unspecified, a unique prism id will be assigned.
 
-_label_ is a string to label prisms and the corresponding offer
-
-_members_ is an array of member objects with the following form:
-
+```bash
+lightning-cli prism-create -k 'members=[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]'
 ```
+
+
+### List Prism IDs
+
+Let's say you have three prisms defined, one of which you specified and ID for. `prism-list` might look something like this:
+
+`prism-list"`
+
+```json
 {
-  name: string,
-  destination: string,
-  split: int,
-  type?: string
+   "prism_ids": [
+      "1ae57a94-1a57-4d9c-aabe-5da1dd340edd",
+      "88a743d1-da8c-4cbe-afdc-9db58e154dc5",
+      "prism-demo1"
+   ]
 }
 ```
 
-_name_: identifier for the member
+## Show a Prism
 
-_destination_: bolt12 or node pubkey. bolt12 is default.
+Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition. This document specifies the POLICY of the prism.
 
-_split_: relative payment split for that member. All splits get normalized to a percentage.
+`prism-show -k prism_id="prism-demo1"`
 
-_type_: "bolt12" or "keysend". Defaults to "bolt12"
-
-#### 3 member prism example
-
-```
-lightning-cli createprism label="band-prism" members="[{\"name\": \"lead-singer\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":5}, {\"name\": \"drummer\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":2}, {\"name\": \"guitarist\", \"destination\": \"lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav\", \"split\":3}]"
-
-```
-
-Returns the BOLT 12 offer:
-
-```
+```json
 {
-   "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
-   "active": true,
-   "single_use": false,
-   "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-   "used": false,
-   "created": true
-}
-```
-
-_see testing/create_prism.sh_
-
-### listprisms
-
-**listprisms**
-
-Returns array of prism metadata:
-
-```
-{
-   "prisms": [
+   "prism_id": "prism-demo1",
+   "members": [
       {
-         "label": "band-prism",
-         "version": "v0.0.1",
-         "members": [
-            {
-               "name": "lead-singer",
-               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 5,
-               "outlay_msat": 0,
-               "id": 1
-            },
-            {
-               "name": "drummer",
-               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 2,
-               "outlay_msat": 3000,
-               "id": 2
-            },
-            {
-               "name": "guitarist",
-               "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2q5mngwpnxstzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-               "split": 3,
-               "outlay_msat": 2300,
-               "id": 3
-            }
-         ],
-         "offer": {
-            "offer_id": "facedc24ee4587f42b75cec81863a63727acea9961d2bdd170d70b90bd28f7b7",
-            "active": true,
-            "single_use": false,
-            "bolt12": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2pf3xzmny94c8y6tnd5tzzql8sxrnaaq8secwrcsw5wmdxtfqgj9kamaslpvgxk08g0tdmqzmav",
-            "used": false
-         }
+         "member_id": "9ec53ec5-40a8-4b27-88ab-daa5f8bff1be",
+         "label": "Carol",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdcrfn0x2eanrs3tgsn4pzlz5vq6w88z48ln2rceuc6eq8yytavhw",
+         "split": 2,
+         "fees_incurred_by": "remote",
+         "payout_threshold": 0
+      },
+      {
+         "member_id": "b121d834-8791-4977-ad24-39f80dc6d070",
+         "label": "Erin",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdszwe3ckdg4mhde9dc4hexv0mhdv2dx7n4p9xyu60t2yu7f9atgs",
+         "split": 4,
+         "fees_incurred_by": "remote",
+         "payout_threshold": 0
+      },
+      {
+         "member_id": "e0a1ec14-9684-47df-bc96-f50e3e1fdbec",
+         "label": "Dave",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtr4svn9a47gnpcjvf6ddyu94eyakmcf6lymaa6ksr9nd62g6mteu",
+         "split": 3,
+         "fees_incurred_by": "remote",
+         "payout_threshold": 0
       }
    ]
 }
 ```
 
-### deleteprism
+## Bindings
 
-**deleteprism** _offer_id_
+Ok, you have a bunch of prism_ids. Next step is to assign a BOLT12 offer to a Prism. Note that ONLY ONE PRISM can be assigned per BOLT12 offer.
 
-When prisms are created, they get stored in the node's datastore with the offer id as the key.
+By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer. (BOLT11 support planned)
 
-_see `datastore`, `listdatastore`, and `deldatastore` from the [CLN docs](https://lightning.readthedocs.io/)._
+### Create a binding
 
-### updateprism
+`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3 bolt_version="bolt12"`
 
-**updateprism** *offer_id members[]*
+Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
 
-Replaces the array of members in a preexisting prism with the members array that gets passed.
+```json
+{
+   "status": "must-replace",
+   "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
+   "prism_id": "prism3",
+   "prism_binding_key": [
+      "prism",
+      "v2",
+      "bind",
+      "bolt12",
+      "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4"
+   ],
+   "get_prism_members": {
+      "7d109925-b8d9-44dc-b8ee-0c63d36da765": {
+         "label": "Dave",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvhf0t2pwm9qpg6y8vvsw97ufrc97j0u4a2rhyhlng3wee09srcaq",
+         "split": 3,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      },
+      "f350e291-8608-44b0-8555-3e0147d70f7c": {
+         "label": "Carol",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0ck6jfedtmkwuf3c7zlhtngj7n3q6s40mw9zq40xq46j506v6wuc",
+         "split": 2,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      },
+      "fa7f43c4-082b-46e3-af03-306b93a0b341": {
+         "label": "Erin",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqwz2ztkw2w4a6946kwz4ac0upqfsaqwkassragy3jw5zm9z93ehks",
+         "split": 4,
+         "fees_incurred_by": "remote",
+         "payout_threshold": "0msat"
+      }
+   }
+}
+```
 
-## Testing and Experimenting
+### List Prism Bindings
 
-The two ways I would recommend playing around with this plugin are the [roygbiv-stack](https://github.com/) and the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo.
+Want to see all your bindings? Run `prism-bindinglist`
 
-### roygbiv-stack
+`lightning-cli -k prism-bindinglist bolt_version=bolt12`
 
-This project is a docker stack capable of deploying a bitcoin node along with any number of CLN nodes running on any network.
+```json
+{
+   "bolt12_prism_bindings": [
+      {
+         "offer_id": "2f882b6a8dac6d84c7f9c9088fa5a4b62a480d71cd9e40b8fd7efe2263e9112b",
+         "prism_id": "prism2"
+      },
+      {
+         "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
+         "prism_id": "prism3"
+      }
+   ]
+}
+```
 
-With the right flags and running on regtest you can spin up a lightning network of CLN nodes running the prism plugin.
+### Inspect a Binding
+`lightning-cli -k prism-bindingshow bolt_version=bolt12 bind_to=5b54e03e04d7393b16c8b88c90e5a8ba74ba5c29fc7f8319c03fd88864a74c21`
 
-See the [docs](https://github.com/farscapian/roygbiv-stack/blob/main/README.md) for more info.
+```
+{
+   "prism_id": "d7e5523b-0362-4488-8c35-c3d01b511836",
+   "member_outlays": {
+      "64b159ac-43b4-4a43-abed-be18869529b2": "0msat",
+      "7f5b1682-4647-47e6-a735-31a1873deaf7": "0msat",
+      "d683ca89-91d9-412e-a2c4-9f2a2330ce68": "0msat"
+   }
+}
 
-### startup_regtest
+```
 
-There is a copy of this script in the [testing dir](https://github.com/daGoodenough/bolt12-prism/blob/main/testing/README.md) and some docs on the other scripts.
+<!-- 
+### Update an existing prism
+
+This command has a similar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion.
+
+### Deletes a prism
+
+Running `prism-delete prism_id` will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted.
+
+### Executes a prism pay-out
+
+`prism-executepayout prism_id amount_msat [label]` 
+
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the `label` paramemter to associate this payout to some external `id`.
+
+
+
+`prism-bindingremove prism_id invoice_type invoice_label`
+    Removes a prism binding. -->
+
+## Contribing
+
+There is a copy of the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo [contrib dir](./contrib/) for local development.
 
 ## Future Development
 
@@ -188,3 +222,8 @@ There is a copy of this script in the [testing dir](https://github.com/daGoodeno
 - manage fees via the outlay prop
 
 - Create a threshold prop to set restrictions on payouts
+
+
+# TODO
+
+* Remove the "type" field from the members JSON and INFER (from regex) whether the destination is a keysend or BOLT12.
