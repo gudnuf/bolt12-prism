@@ -244,7 +244,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
                 f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
     
         # invoices can only be paid once, so we delete the bolt11 binding
-        if bind_type is "bolt11":
+        if bind_type == "bolt11":
             PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
 
     except Exception as e:
