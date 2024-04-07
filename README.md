@@ -40,12 +40,17 @@ Find your c-lightning config file and add
 
 ### Create a prism
 
-`prism-create -k members=members_json prism_id=prism-xxx`
+`prism-create -k members=members_json prism_id=prism1`
 
 The `prism_id` is optional. If left unspecified, a unique prism id will be assigned.
 
+MEMBERS_JSON=
+```json
+[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]
+```
+
 ```bash
-lightning-cli prism-create -k 'members=[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]'
+lightning-cli prism-create -k members="$MEMBERS_JSON"
 ```
 
 
@@ -102,6 +107,52 @@ Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definit
    ]
 }
 ```
+
+## Prism-Pay - Executes a Payout
+
+`prism-pay prism_id=prism1 amount_msat=1000000` 
+
+When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to interactively execute a prism payout [another CLN plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the optional `label` paramemter to associate this payout to some external `id`.
+
+```json
+{
+   "prism_member_payouts": {
+      "6b5c4165-f423-4d52-a986-be4aefbea67a": {
+         "destination": "0305ec405cd73645a5a1c9e73c29b8fe01469d52be73d87a5b5e57750622dbf134",
+         "payment_hash": "4d7ad89ad012486a6186ea38742afce2000dfe259383d315444f9ca1f8ffde3c",
+         "created_at": 1712443900.723825,
+         "parts": 1,
+         "amount_msat": 333333,
+         "amount_sent_msat": 333333,
+         "payment_preimage": "a325ef99b4a36bdf9afd48c6754ac5b5b507334ad9431967b96f2d5d51b78f45",
+         "status": "complete"
+      },
+      "367fca07-da31-4ac7-9ba6-e057a63c331e": {
+         "destination": "022806d7df0c1045039fcd99f5f09676b6586418d619458300bdbeeff2d6f149b0",
+         "payment_hash": "63d2435e9103a5d6234b0dcecdee4a543d6584c7d700bb92c0a41af7a6c103af",
+         "created_at": 1712443901.6540992,
+         "parts": 1,
+         "amount_msat": 333333,
+         "amount_sent_msat": 333333,
+         "payment_preimage": "4976661af0af3716f025fcc26f487b19e5a67d87a5c85fc8f599f9c77460e0be",
+         "status": "complete"
+      },
+      "7e2e6a5d-e020-463e-9b4d-491e4cdd864a": {
+         "destination": "03dc8bf13244cda303c7faa5cbf53c9ea2bb517ea4580da3c27293383dc4e5831d",
+         "payment_hash": "04bc390780a7bdc1f60a09ddad3939a099d9fa74826c4c7e8eaaa1aeda89046f",
+         "created_at": 1712443902.566242,
+         "parts": 1,
+         "amount_msat": 333333,
+         "amount_sent_msat": 333333,
+         "payment_preimage": "77e9027c6da547754bf86a7bf9cef3a69e35e635b7d86a835e9a499066093788",
+         "status": "complete"
+      }
+   }
+}
+```
+
+The output above shows the result of paying to each BOLT12 offer specified in `prism1`. Notice they get equal splits in accordance with the prism policy.
+
 
 ## Bindings
 
@@ -189,22 +240,13 @@ Want to see all your bindings? Run `prism-bindinglist`
 
 ```
 
-<!-- 
-### Update an existing prism
+<!-- ### Update an existing prism
 
-This command has a similar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion.
+This command has a similar sytax as `prism-create`. It takes a new `members[]` json object and updates `prism_id` to have the new members defintion. -->
 
-### Deletes a prism
+<!-- ### Deletes a prism
 
-Running `prism-delete prism_id` will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted.
-
-### Executes a prism pay-out
-
-`prism-executepayout prism_id amount_msat [label]` 
-
-When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to manually execute a prism OUTSIDE of some binding. e.g., from [another core lightning plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the `label` paramemter to associate this payout to some external `id`.
-
-
+Running `prism-delete prism_id` will delete a prism object from the data store. Note that any prism bindings related to `prism_id` will also be deleted. -->
 
 `prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding. -->
