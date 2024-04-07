@@ -254,14 +254,17 @@ class Prism:
             pay_queue[m.id] = invoice.get("invoice")
 
         for member_id, invoice in pay_queue.items():
+            payment = None
+
             try:
                 payment = self._plugin.rpc.pay(bolt11=invoice)
             except RpcError as e:
                 # TODO: add as error to results
                 self._plugin.log(f"error paying prism member: {e}", 'error')
 
-            # map payment results to member ID for succuess/fail handling
-            results[member_id] = payment
+            if payment is not None:
+                # map payment results to member ID for succuess/fail handling
+                results[member_id] = payment
 
         self._plugin.log(
             f"PRISM-PAY - ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')

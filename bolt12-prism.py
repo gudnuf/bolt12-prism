@@ -229,21 +229,19 @@ def on_payment(plugin, invoice_payment, **kwargs):
             bind_to = payment_label
             bind_type = "bolt11"
 
-        plugin.log(f"BIND_TYPE: {bind_type}")
-
-        amount_msat = invoice_payment['msat'][:-4]
-
-        plugin.log(
-            f"payment_label:  {payment_label}; amount_msat:  {amount_msat}")
-
         # TODO: return PrismBinding.get as class member rather than json
+        binding = None
         binding = PrismBinding.get(plugin, bind_to, bind_type)
 
-        # try:
-        binding.pay(amount_msat=int(amount_msat))
-        # except Exception as e:
-        #     plugin.log(
-        #         f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
+        if not binding:
+            plugin.log("INFO: Incoming payment not associated with prism binding. Nothing to do.")
+            return
+
+        try:
+            binding.pay(amount_msat=int(amount_msat))
+        except Exception as e:
+            plugin.log(
+                f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
     
         # invoices can only be paid once, so we delete the bolt11 binding
         if bind_type is "bolt11":
