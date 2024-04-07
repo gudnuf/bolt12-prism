@@ -282,6 +282,7 @@ class PrismBinding:
         bindings_key = ["prism", prism_db_version,
                         "bind", bolt_version, bind_to]
 
+        rtnVal = False
         try:
             binding_records = plugin.rpc.deldatastore(
                 key=bindings_key)
@@ -291,6 +292,11 @@ class PrismBinding:
         if not binding_records:
             raise Exception(
                 f"Could not find a prism binding for offer {bind_to}")
+        else:
+            rtnVal = True
+
+        # if we end up returning true, that indicates the record was successfully deleted.
+        return rtnVal
 
     @staticmethod
     def from_db_string(plugin: Plugin, string: str, bind_to: str, bolt_version: str):

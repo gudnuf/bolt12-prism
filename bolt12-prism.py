@@ -140,59 +140,22 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 
     return add_binding_result
 
-# @plugin.method("prism-bindingremove")
-# def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
-#     '''Removes a prism binding.'''
+@plugin.method("prism-bindingrm")
+def remove_prism_binding(plugin, offer_id, bolt_version="bolt12"):
+    '''Removes a prism binding.'''
 
-#     plugin.log(f"in prism-bindingremove")
+    binding = PrismBinding.get(plugin, offer_id, bolt_version)
 
-#     dbmode = "must-replace"
+    if not binding:
+        raise Exception("ERROR: could not find a binding for this offer.")
 
-#     types = [ "bolt11", "bolt12" ]
-#     if bolt_version not in types:
-#         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+    plugin.log(
+        f"INFO: attempting to delete a prism binding for {offer_id}.")
 
-#     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-#     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id ]
-#     plugin.log(f"binding_key: {prism_binding_key}")
+    recordDeleted = False
+    recordDeleted = PrismBinding.delete(plugin, bind_to=offer_id)
 
-#     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
-
-#     list_of_prism_ids = []
-
-#     if len(binding_record) > 0:
-#         # oh, the record already exists. If if s
-#         list_of_prism_ids = json.loads(binding_record[0]["string"])
-#         list_of_prism_ids.remove(prism_id)
-#         dbmode = "must-replace"
-#         plugin.log(f"binding_record: {binding_record[0]['string']}")
-#         list_of_prism_ids = json.loads(binding_record[0]["string"])
-#         plugin.log(f"list_of_prism_ids: {list_of_prism_ids}")
-
-#         if prism_id in list_of_prism_ids:
-#             list_of_prism_ids.remove(prism_id)
-#     else:
-#         raise Exception(f"Could not find any binding records for {bolt_version} {offer_id}")
-
-#     status_indicator = None
-
-#     # we delete the entire database entry if there are no prisms associated with it.
-#     if len(list_of_prism_ids) == 0:
-#         status_indicator = "deleted-key"
-#         plugin.rpc.deldatastore(key=prism_binding_key)
-
-#     else:
-#         status_indicator = "updated-key"
-#         # we need to update the record now.
-#         plugin.rpc.datastore(key=prism_binding_key, string=json.dumps(list_of_prism_ids), mode=dbmode)
-
-#     response = {
-#         "status": status_indicator,
-#         "offer_id": offer_id,
-#         "prism_id": prism_id,
-#         "prism_binding_key": prism_binding_key }
-
-#     return response
+    return { "binding_deleted": recordDeleted }
 
 # @plugin.method("prism-delete")
 # def delete_prism(plugin, prism_id):
@@ -210,7 +173,7 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 #     return return_value
 
 
-@plugin.method("prism-executepayout")
+@plugin.method("prism-pay")
 def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     '''Executes (pays-out) a prism.'''
 
@@ -240,74 +203,9 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     plugin.log("PAYING")
     pay_results = prism.pay(amount_msat=amount_msat)
 
-    return pay_results
-
-    # TODO: move the below code into prism.pay
-
-    # # this for loop basically updates all the prism member outlay database records...
-    # # we don't execute payments in this loop.
-    # for member in prism.members:
-
-    #     # so, let's first update the outlay in the database
-    #     # so if fails, we retain the payout amount. If the payment is successful,
-    #     # we will want to deduct the payment fee from the outlay and update record.
-
-    #     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-    #     prism_outlay_key = [ "prism", "prism", prism_id, "outlay" ]
-    #     plugin.log(f"prism_outlay_key: {prism_outlay_key}")
-
-    #     existing_outlay = 0
-
-    #     # ok let's first pull any existing outlay records from the datastore.
-    #     outlay_binding_record = plugin.rpc.listdatastore(key=prism_outlay_key)["datastore"]
-    #     plugin.log(f"outlay_binding_record: {outlay_binding_record}")
-
-    #     if len(outlay_binding_record) == 0:
-    #         dbmode = "must-create"
-    #         existing_outlay = 0
-    #         plugin.log(f"Creating a new outlay record for: {prism_outlay_key}")
-    #     else:
-    #         # ok, the record already exists. Lets add the outlay from the prismexecute
-    #         dbmode = "must-replace"
-    #         existing_outlay = Millisatoshi(outlay_binding_record[0]["string"])
-    #         plugin.log(f"existing_outlay: {existing_outlay}")
-
-    #     new_member_outlay = Millisatoshi(floor(existing_outlay / sum_of_member_splits) * amount_msat)
-    #     plugin.log(f"new_member_outlay / member: {new_member_outlay} / {member['name']}")
-
-    #     # save the outlay in the database before we attempt to pay out.
-    #     plugin.rpc.datastore(key=prism_outlay_key, string=new_member_outlay, mode=dbmode)
-
-    #     for member in prism_members:
-
-    #         # first we need to see if there are any existing binding records for this prism_id/invoice_type
-    #         prism_outlay_key = [ "prism", "prism", prism_id, "outlay" ]
-    #         plugin.log(f"prism_outlay_key: {prism_outlay_key}")
-
-    #         existing_outlay = 0
-
-    #         # ok let's first pull any existing outlay records from the datastore.
-    #         outlay_binding_record = plugin.rpc.listdatastore(key=prism_outlay_key)["datastore"]
-    #         plugin.log(f"outlay_binding_record: {outlay_binding_record}")
-
-    #         outlay_msat = prism_deserved_msats + Millisatoshi(existing_outlay)
-    #         payment_type = member["type"]
-
-    #         payment_result = {}
-    #         if payment_type == "keysend":
-    #             payment_result = plugin.rpc.keysend(destination=destination, amount_msat=amount_msat)
-    #             plugin.log(f"Sent keysend payment for {destination} worth {amount_msat}")
-    #         elif payment_type == "bolt12":
-    #             fetch_invoice_response = plugin.rpc.fetchinvoice(offer=destination, amount_msat=amount_msat)
-    #             bolt12_invoice = fetch_invoice_response["invoice"]
-    #             payment_result = plugin.rpc.pay(bolt12_invoice)
-    #             plugin.log(f"Sent bolt12 payment for {destination} worth {amount_msat}")
-    #         else:
-    #             raise Exception("ERROR: something went wrong. The payment type was not correct.")
-
-# # ABOUT: First, we check the db to see if there are any bindings associated with
-# # the invoice payment.
-
+    return {
+            "prism_member_payouts": pay_results
+        }
 
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
