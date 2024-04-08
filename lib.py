@@ -240,34 +240,25 @@ class Prism:
             member_msat = math.floor(
                 amount_msat * (m.split / self.total_splits))
 
-            member_offer = m.destination
-            # fetch invoice from memeber's BOLT 12
-            try:
-                invoice = self._plugin.rpc.fetchinvoice(
-                    offer=member_offer, amount_msat=member_msat)
-            except RpcError as e:
-                # TODO: add as error to results
-                self._plugin.log(f"error fetching invoice {e}", 'error')
-            # TODO: handle keysend
-
-            # map member ids to invoices
-            pay_queue[m.id] = invoice.get("invoice")
-
-        for member_id, invoice in pay_queue.items():
             payment = None
+            if bolt12Regex.match(m.destination):
+                try:
+                    bolt12_invoice = self._plugin.rpc.fetchinvoice(offer=m.destination, amount_msat=member_msat)
+                    payment = self._plugin.rpc.pay(bolt11=bolt12_invoice.get("invoice"))
+                except RpcError as e:
+                    self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+            elif pubkeyRegex.match(m.destination):
+                try:
+                    self._plugin.log(f"Attempting keysend payment for {member_msat}msats to node with pubkey {m.destination}", 'info')
+                    payment = self._plugin.rpc.keysend(destination=m.destination, amount_msat=member_msat)
+                except RpcError as e:
+                    self._plugin.log(f"Prism member keysend payment did not complete:  {e}", 'warn')
 
-            try:
-                payment = self._plugin.rpc.pay(bolt11=invoice)
-            except RpcError as e:
-                # TODO: add as error to results
-                self._plugin.log(f"error paying prism member: {e}", 'error')
-
-            if payment is not None:
-                # map payment results to member ID for succuess/fail handling
-                results[member_id] = payment
+            results[m.id] = payment
 
         self._plugin.log(
             f"PRISM-PAY - ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')
+
         return results
 
 
