@@ -4,7 +4,6 @@ from lib import Prism, Member, PrismBinding
 
 plugin = Plugin()
 
-
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
 
@@ -110,8 +109,6 @@ def get_binding(plugin, bind_to, bolt_version="bolt12"):
     return binding.to_dict()
 
 # adds a binding to the database.
-
-
 @plugin.method("prism-bindingadd")
 def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
@@ -210,13 +207,16 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
 
-    plugin.log(f"Executing invoice_payment {invoice_payment}", 'info')
+    plugin.log(f"Incoming invoice_payment {invoice_payment}", 'info')
 
     try:
         payment_label = invoice_payment["label"]
-
+        plugin.log(f"payment_label: {payment_label}")
         # invoices will always have a unique label
         invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
+
+        if invoice is None:
+            return
 
         bind_to = None
         bind_type = None
