@@ -141,18 +141,23 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 def remove_prism_binding(plugin, offer_id, bolt_version="bolt12"):
     '''Removes a prism binding.'''
 
-    binding = PrismBinding.get(plugin, offer_id, bolt_version)
+    try:
+        binding = PrismBinding.get(plugin, offer_id, bolt_version)
 
-    if not binding:
-        raise Exception("ERROR: could not find a binding for this offer.")
+        if not binding:
+            raise Exception("ERROR: could not find a binding for this offer.")
 
-    plugin.log(
-        f"INFO: attempting to delete a prism binding for {offer_id}.")
+        plugin.log(
+            f"INFO: attempting to delete a prism binding for {offer_id}.")
 
-    recordDeleted = False
-    recordDeleted = PrismBinding.delete(plugin, bind_to=offer_id)
+        recordDeleted = False
+        recordDeleted = PrismBinding.delete(plugin, bind_to=offer_id)
 
-    return { "binding_deleted": recordDeleted }
+        return { "binding_removed": recordDeleted }
+
+    except:
+        raise Exception(f"ERROR: Could not find a binding for offer {offer_id}.")
+
 
 # @plugin.method("prism-delete")
 # def delete_prism(plugin, prism_id):
