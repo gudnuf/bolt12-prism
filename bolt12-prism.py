@@ -237,13 +237,13 @@ def on_payment(plugin, invoice_payment, **kwargs):
         # TODO: return PrismBinding.get as class member rather than json
         binding = None
         binding = PrismBinding.get(plugin, bind_to, bind_type)
+        plugin.log(f"binding: {binding}")
 
         if not binding:
             plugin.log("INFO: Incoming payment not associated with prism binding. Nothing to do.")
             return
-
         try:
-            binding.pay(amount_msat=int(amount_msat))
+            PrismBinding.pay(self=binding, amount_msat=int(amount_msat))
         except Exception as e:
             plugin.log(
                 f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
@@ -253,7 +253,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
             PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
 
     except Exception as e:
-        raise Exception("Payment error: {}".format(e))
+        plugin.log(f"INFO: invoice_payment has no prism bindings.")
 
 
 plugin.run()  # Run our plugin
