@@ -323,8 +323,6 @@ class PrismBinding:
     @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
 
-        plugin.log(f"got into get_binding_state.")
-        plugin.log(f"bind_to: {bind_to}'")
 
         types = ["bolt11", "bolt12"]
         if bolt_version not in types:
@@ -361,7 +359,7 @@ class PrismBinding:
 
         # if the record already exists, we adjust the dbmode.
         if len(binding_record) > 0:
-            # oh, the record already exists. If if s
+            # oh, the record already exists. switch to must-replace
             dbmode = "must-replace"
 
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
@@ -407,7 +405,7 @@ class PrismBinding:
 
         for binding_record in binding_records:
             offer_id = binding_record["key"][4]
-            plugin.log(f"offer_id: {offer_id}")
+            #plugin.log(f"offer_id: {offer_id}")
             binding_record_str = binding_record['string']
             binding = PrismBinding.from_db_string(plugin, string=binding_record_str, bind_to=offer_id, bolt_version=bolt_version) 
             bindings.append(binding)
