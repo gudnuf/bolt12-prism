@@ -46,7 +46,7 @@ The `prism_id` is optional. If left unspecified, a unique prism id will be assig
 
 MEMBERS_JSON=
 ```json
-[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1, "type":"bolt12"},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1, "type":"bolt12"},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1, "type":"bolt12"}]
+[{"label" : "Lead-Singer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqtyh3ua3crhn6me89spfupgp40nxkdfkhp0j2zjk63qgsdxp230ss", "split": 1},{"label" : "Drummer", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqw2ugunkxkzckdwkme9wkzfmjf4f2hm3852906gwsk05lxm0s29fu", "split": 1},{"label" : "Guitarist", "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvqlu8pa98q4wqrvdvyg0svtunw8pa5vj0j9r5mnpzcrjyx8tm7jw", "split": 1}]
 ```
 
 ```bash
@@ -156,15 +156,13 @@ The output above shows the result of paying to each BOLT12 offer specified in `p
 
 ## Bindings
 
-Ok, you have a bunch of prism_ids. Next step is to assign a BOLT12 offer to a Prism. Note that ONLY ONE PRISM can be assigned per BOLT12 offer.
-
-By creating bindings, you can have a prism payout execute whenever a payment is received by your node. With the prism plugin, you can bind a prism to a BOLT12 offer. (BOLT11 support planned)
+Often you will want your prisms to be paid out whenever you have an incoming payment. This is what a binding is for. Note that ONE and ONLY ONE prism can be bound to any given offer.
 
 ### Create a binding
 
-`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3 bolt_version="bolt12"`
+`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3`
 
-Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism will be executed upon incoming payment.
+Binds a prism to either a bolt12 offer such that the prism will be executed upon incoming payment.
 
 ```json
 {
@@ -208,25 +206,29 @@ Binds a prism to either a bolt11 invoice or a bolt12 offer such that the prism w
 
 Want to see all your bindings? Run `prism-bindinglist`
 
-`lightning-cli -k prism-bindinglist bolt_version=bolt12`
+`lightning-cli -k prism-bindinglist`
 
 ```json
 {
    "bolt12_prism_bindings": [
       {
-         "offer_id": "2f882b6a8dac6d84c7f9c9088fa5a4b62a480d71cd9e40b8fd7efe2263e9112b",
-         "prism_id": "prism2"
-      },
-      {
-         "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
-         "prism_id": "prism3"
+         "offer_id": "1c3b55c24b1da141c96a549b994a8632edf66d7440c59ad27fd2b0caf8dcb95b",
+         "prism_id": "prism1",
+         "member_outlays": {
+            "54ed233f-9f20-4e3d-b8d0-8e0c5f0fe95a": "2133328msat",
+            "a070caef-e2ef-4ed0-9a2a-83bda5b32123": "2133328msat",
+            "87a0210d-99e6-4b78-b525-9cdb03f3be90": "2133328msat",
+            "46d96905-13d4-40d9-8729-3c07007271e5": "2133328msat",
+            "d1986725-1cd2-40f3-8a80-9095e66be218": "2133328msat",
+            "3bc78887-96a5-4e15-ac8d-e9fc4f8d9c76": "2133328msat"
+         }
       }
    ]
 }
 ```
 
 ### Inspect a Binding
-`lightning-cli -k prism-bindingshow bolt_version=bolt12 bind_to=5b54e03e04d7393b16c8b88c90e5a8ba74ba5c29fc7f8319c03fd88864a74c21`
+`lightning-cli -k prism-bindingshow bind_to=5b54e03e04d7393b16c8b88c90e5a8ba74ba5c29fc7f8319c03fd88864a74c21`
 
 ```
 {
@@ -253,19 +255,10 @@ Running `prism-delete prism_id` will delete a prism object from the data store. 
 
 ## Contribing
 
-There is a copy of the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo [contrib dir](./contrib/) for local development.
+There is a copy of the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo [contrib dir](./contrib/) for local development. See [roygbiv.guide/contact](roygbiv.guide/contact) to join our Telegram.
 
 ## Future Development
 
 - generalize the testing scripts
-
 - create unit tests using [`pyln-testing`](https://github.com/ElementsProject/lightning/tree/master/contrib/pyln-testing)
-
-- manage fees via the outlay prop
-
 - Create a threshold prop to set restrictions on payouts
-
-
-# TODO
-
-* Remove the "type" field from the members JSON and INFER (from regex) whether the destination is a keysend or BOLT12.
