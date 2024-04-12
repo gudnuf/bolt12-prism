@@ -212,48 +212,56 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
 
-    plugin.log(f"Incoming invoice_payment {invoice_payment}", 'info')
+    #plugin.log(f"Incoming invoice_payment {invoice_payment}", 'info')
+
+    # try:
+    payment_label = invoice_payment["label"]
+    #plugin.log(f"payment_label: {payment_label}")
+    # invoices will always have a unique label
+    invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
+
+    if invoice is None:
+        return
+
+    bind_to = None
+    bind_type = None
+
+    # invoices will likely be generated from BOLT 12
+    if "local_offer_id" in invoice:
+        bind_to = invoice["local_offer_id"]
+        bind_type = "bolt12"
+    else:
+        bind_to = payment_label
+        bind_type = "bolt11"
+
+    # TODO: return PrismBinding.get as class member rather than json
+    binding = None
+    binding = PrismBinding.get(plugin, bind_to, bind_type)
+
+    plugin.log(f"test1")
+
+    #plugin.log(f"binding: {binding.id}")
+
+    if not binding:
+        plugin.log("Incoming payment not associated with prism binding. Nothing to do.", "info")
+        return
+
+    plugin.log(f"test2")
 
     try:
-        payment_label = invoice_payment["label"]
-        plugin.log(f"payment_label: {payment_label}")
-        # invoices will always have a unique label
-        invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
-
-        if invoice is None:
-            return
-
-        bind_to = None
-        bind_type = None
-
-        # invoices will likely be generated from BOLT 12
-        if "local_offer_id" in invoice:
-            bind_to = invoice["local_offer_id"]
-            bind_type = "bolt12"
-        else:
-            bind_to = payment_label
-            bind_type = "bolt11"
-
-        # TODO: return PrismBinding.get as class member rather than json
-        binding = None
-        binding = PrismBinding.get(plugin, bind_to, bind_type)
-        plugin.log(f"binding: {binding}")
-
-        if not binding:
-            plugin.log("INFO: Incoming payment not associated with prism binding. Nothing to do.")
-            return
-        try:
-            PrismBinding.pay(self=binding, amount_msat=int(amount_msat))
-        except Exception as e:
-            plugin.log(
-                f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
-    
-        # invoices can only be paid once, so we delete the bolt11 binding
-        if bind_type == "bolt11":
-            PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
-
+        amount_msat = invoice_payment['msat']
+        plugin.log(f"amount_msat: {amount_msat}")
+        binding.pay(amount_msat=int(amount_msat))
+        plugin.log(f"test3")
     except Exception as e:
-        plugin.log(f"INFO: invoice_payment has no prism bindings.")
+        plugin.log(
+            f"ERROR: something went wrong with binding payout {binding.prism.id}. {e}")
 
+    # invoices can only be paid once, so we delete the bolt11 binding
+    if bind_type == "bolt11":
+        PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
+
+    # except Exception as e:
+    #     plugin.log(f"invoice_payment has no prism bindings.", "info")
 
 plugin.run()  # Run our plugin
