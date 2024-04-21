@@ -1,6 +1,6 @@
 # BOLT 12 Prism Plugin
 
-A CLN plugin for creating and interacting with prisms. This plugin supports receiving to BOLT12 offers or BOLT11 invoices, and paying prism out to either BOLT12 or keysend destinations. In addition, prism payouts may be executed manually (e.g., via another CLN plugin).
+A CLN plugin for creating and interacting with prisms. This plugin supports receiving to BOLT12 offers or BOLT11 invoices, and paying prism out to either BOLT12 or keysend destinations. Prism payouts may be executed interactively or externally (e.g., via another CLN plugin).
 
 ![roygbiv](https://github.com/daGoodenough/bolt12-prism/assets/108303703/2c4ba75d-b0ab-4c3f-a5c4-2202716a04a0)
 
@@ -58,14 +58,14 @@ lightning-cli prism-create -k members="$MEMBERS_JSON"
 
 Let's say you have three prisms defined, one of which you specified and ID for. `prism-list` might look something like this:
 
-`prism-list"`
+`lightning-cli prism-list`
 
 ```json
 {
    "prism_ids": [
       "1ae57a94-1a57-4d9c-aabe-5da1dd340edd",
       "88a743d1-da8c-4cbe-afdc-9db58e154dc5",
-      "prism-demo1"
+      "prism1"
    ]
 }
 ```
@@ -74,11 +74,11 @@ Let's say you have three prisms defined, one of which you specified and ID for. 
 
 Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition. This document specifies the POLICY of the prism.
 
-`prism-show -k prism_id="prism-demo1"`
+`lightning-cli prism-show -k prism_id="prism1"`
 
 ```json
 {
-   "prism_id": "prism-demo1",
+   "prism_id": "prism1",
    "members": [
       {
          "member_id": "9ec53ec5-40a8-4b27-88ab-daa5f8bff1be",
@@ -110,7 +110,7 @@ Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definit
 
 ## Prism-Pay - Executes a Payout
 
-`prism-pay prism_id=prism1 amount_msat=1000000` 
+`lighting-cli prism-pay -k prism_id=prism1 amount_msat=1000000`
 
 When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to interactively execute a prism payout [another CLN plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the optional `label` paramemter to associate this payout to some external `id`.
 
@@ -160,7 +160,7 @@ Often you will want your prisms to be paid out whenever you have an incoming pay
 
 ### Create a binding
 
-`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism3`
+`lightning-cli -k prism-bindingadd bind_to=ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4 prism_id=prism1`
 
 Binds a prism to either a bolt12 offer such that the prism will be executed upon incoming payment.
 
@@ -168,7 +168,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
 {
    "status": "must-replace",
    "offer_id": "ca9f3342671c27d80b97d0ff44da0f43a7fc0481fa7a103bbd4b1b3a0ad06bd4",
-   "prism_id": "prism3",
+   "prism_id": "prism1",
    "prism_binding_key": [
       "prism",
       "v2",
@@ -204,7 +204,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
 
 ### List Prism Bindings
 
-Want to see all your bindings? Run `prism-bindinglist`
+Want to see all your bindings? Run `prism-bindinglist`. (Hint, run `prism-bindingshow` to list a specific binding state.)
 
 `lightning-cli -k prism-bindinglist`
 
@@ -227,20 +227,11 @@ Want to see all your bindings? Run `prism-bindinglist`
 }
 ```
 
-### Inspect a Binding
-`lightning-cli -k prism-bindingshow bind_to=5b54e03e04d7393b16c8b88c90e5a8ba74ba5c29fc7f8319c03fd88864a74c21`
+Notice that outlay property? That's how the prism plugin deals with failed payments AND fees. When a prism binding has an incoming payment, prism member outlays in the binding are increased according the prism policy and incoming amount.
 
-```
-{
-   "prism_id": "d7e5523b-0362-4488-8c35-c3d01b511836",
-   "member_outlays": {
-      "64b159ac-43b4-4a43-abed-be18869529b2": "0msat",
-      "7f5b1682-4647-47e6-a735-31a1873deaf7": "0msat",
-      "d683ca89-91d9-412e-a2c4-9f2a2330ce68": "0msat"
-   }
-}
+When a payment to a prism member succeeds, the outlay is decremented by the total amount of the payment (including fees paid when `fees_incurred_by=remote`). When `fees_incurred_by=local` fees are paid by the node operator hosting the prism. Prism member payouts occur when outlays exceed the `payout_threshold` in the respective prism policy. 
 
-```
+If a payment to a prism member fails for whatever reason, the outlay remains unchanged.
 
 <!-- ### Update an existing prism
 
@@ -253,12 +244,6 @@ Running `prism-delete prism_id` will delete a prism object from the data store. 
 `prism-bindingremove prism_id invoice_type invoice_label`
     Removes a prism binding. -->
 
-## Contribing
+## Contributing
 
 There is a copy of the [startup_regtest](https://github.com/ElementsProject/lightning/blob/master/contrib/startup_regtest.sh) script from the c-lightning repo [contrib dir](./contrib/) for local development. See [roygbiv.guide/contact](roygbiv.guide/contact) to join our Telegram.
-
-## Future Development
-
-- generalize the testing scripts
-- create unit tests using [`pyln-testing`](https://github.com/ElementsProject/lightning/tree/master/contrib/pyln-testing)
-- Create a threshold prop to set restrictions on payouts
