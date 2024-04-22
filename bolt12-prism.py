@@ -4,7 +4,6 @@ from lib import Prism, Member, PrismBinding
 
 plugin = Plugin()
 
-
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
 
@@ -104,14 +103,11 @@ def get_binding(plugin, bind_to, bolt_version="bolt12"):
     if not binding:
         raise Exception("ERROR: could not find a binding for this offer.")
 
-    plugin.log(
-        f"INFO: prism-bindingsbindinghow executed for {bolt_version} offer '{bind_to}'")
+    plugin.log(f"prism-bindingsbindinghow executed for {bolt_version} offer '{bind_to}'", "info")
 
     return binding.to_dict()
 
 # adds a binding to the database.
-
-
 @plugin.method("prism-bindingadd")
 def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
@@ -140,59 +136,26 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
 
     return add_binding_result
 
-# @plugin.method("prism-bindingremove")
-# def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
-#     '''Removes a prism binding.'''
+@plugin.method("prism-bindingremove")
+def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
+    '''Removes a prism binding.'''
 
-#     plugin.log(f"in prism-bindingremove")
+    try:
+        binding = PrismBinding.get(plugin, offer_id, bolt_version)
 
-#     dbmode = "must-replace"
+        if not binding:
+            raise Exception("ERROR: could not find a binding for this offer.")
 
-#     types = [ "bolt11", "bolt12" ]
-#     if bolt_version not in types:
-#         raise Exception("ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+        plugin.log(f"Attempting to delete a prism binding for {offer_id}.", "info")
 
-#     # first we need to see if there are any existing binding records for this prism_id/invoice_type
-#     prism_binding_key = [ "prism", prism_db_version, "bind", bolt_version, offer_id ]
-#     plugin.log(f"binding_key: {prism_binding_key}")
+        recordDeleted = False
+        recordDeleted = PrismBinding.delete(plugin, bind_to=offer_id)
 
-#     binding_record = plugin.rpc.listdatastore(key=prism_binding_key)["datastore"]
+        return { "binding_removed": recordDeleted }
 
-#     list_of_prism_ids = []
+    except:
+        raise Exception(f"ERROR: Could not find a binding for offer {offer_id}.")
 
-#     if len(binding_record) > 0:
-#         # oh, the record already exists. If if s
-#         list_of_prism_ids = json.loads(binding_record[0]["string"])
-#         list_of_prism_ids.remove(prism_id)
-#         dbmode = "must-replace"
-#         plugin.log(f"binding_record: {binding_record[0]['string']}")
-#         list_of_prism_ids = json.loads(binding_record[0]["string"])
-#         plugin.log(f"list_of_prism_ids: {list_of_prism_ids}")
-
-#         if prism_id in list_of_prism_ids:
-#             list_of_prism_ids.remove(prism_id)
-#     else:
-#         raise Exception(f"Could not find any binding records for {bolt_version} {offer_id}")
-
-#     status_indicator = None
-
-#     # we delete the entire database entry if there are no prisms associated with it.
-#     if len(list_of_prism_ids) == 0:
-#         status_indicator = "deleted-key"
-#         plugin.rpc.deldatastore(key=prism_binding_key)
-
-#     else:
-#         status_indicator = "updated-key"
-#         # we need to update the record now.
-#         plugin.rpc.datastore(key=prism_binding_key, string=json.dumps(list_of_prism_ids), mode=dbmode)
-
-#     response = {
-#         "status": status_indicator,
-#         "offer_id": offer_id,
-#         "prism_id": prism_id,
-#         "prism_binding_key": prism_binding_key }
-
-#     return response
 
 # @plugin.method("prism-delete")
 # def delete_prism(plugin, prism_id):
@@ -312,47 +275,56 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
 
-    plugin.log(f"Executing invoice_payment {invoice_payment}", 'info')
+    #plugin.log(f"Incoming invoice_payment {invoice_payment}", 'info')
+
+    # try:
+    payment_label = invoice_payment["label"]
+    #plugin.log(f"payment_label: {payment_label}")
+    # invoices will always have a unique label
+    invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
+
+    if invoice is None:
+        return
+
+    bind_to = None
+    bind_type = None
+
+    # invoices will likely be generated from BOLT 12
+    if "local_offer_id" in invoice:
+        bind_to = invoice["local_offer_id"]
+        bind_type = "bolt12"
+    else:
+        bind_to = payment_label
+        bind_type = "bolt11"
+
+    # TODO: return PrismBinding.get as class member rather than json
+    binding = None
+    binding = PrismBinding.get(plugin, bind_to, bind_type)
+
+    plugin.log(f"test1")
+
+    #plugin.log(f"binding: {binding.id}")
+
+    if not binding:
+        plugin.log("Incoming payment not associated with prism binding. Nothing to do.", "info")
+        return
+
+    plugin.log(f"test2")
 
     try:
-        payment_label = invoice_payment["label"]
-
-        # invoices will always have a unique label
-        invoice = plugin.rpc.listinvoices(payment_label)["invoices"][0]
-
-        bind_to = None
-        bind_type = None
-
-        # invoices will likely be generated from BOLT 12
-        if "local_offer_id" in invoice:
-            bind_to = invoice["local_offer_id"]
-            bind_type = "bolt12"
-        else:
-            bind_to = payment_label
-            bind_type = "bolt11"
-
-        plugin.log(f"BIND_TYPE: {bind_type}")
-
-        amount_msat = invoice_payment['msat'][:-4]
-
-        plugin.log(
-            f"payment_label:  {payment_label}; amount_msat:  {amount_msat}")
-
-        # TODO: return PrismBinding.get as class member rather than json
-        binding = PrismBinding.get(plugin, bind_to, bind_type)
-
-        # try:
+        amount_msat = invoice_payment['msat']
+        plugin.log(f"amount_msat: {amount_msat}")
         binding.pay(amount_msat=int(amount_msat))
-        # except Exception as e:
-        #     plugin.log(
-        #         f"ERROR: there was a problem paying prism {binding.prism.id}. Outlays may not have been updated properly. throwing...{e}")
-    
-        # invoices can only be paid once, so we delete the bolt11 binding
-        if bind_type == "bolt11":
-            PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
-
+        plugin.log(f"test3")
     except Exception as e:
-        raise Exception("Payment error: {}".format(e))
+        plugin.log(
+            f"ERROR: something went wrong with binding payout {binding.prism.id}. {e}")
 
+    # invoices can only be paid once, so we delete the bolt11 binding
+    if bind_type == "bolt11":
+        PrismBinding.delete(plugin, bind_to, bolt_version=bind_type)
+
+    # except Exception as e:
+    #     plugin.log(f"invoice_payment has no prism bindings.", "info")
 
 plugin.run()  # Run our plugin
