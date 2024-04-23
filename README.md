@@ -1,6 +1,6 @@
-# BOLT 12 Prism Plugin
+# BOLT12 Prism Plugin
 
-A CLN plugin for creating and interacting with prisms. This plugin supports receiving to BOLT12 offers or BOLT11 invoices, and paying prism out to either BOLT12 or keysend destinations. Prism payouts may be executed interactively or externally (e.g., via another CLN plugin).
+A CLN plugin for creating and interacting with prisms based on [BOLT12](https://bolt12.org). Prism payouts may be executed interactively (e.g., manually or via another CLN plugin), or bound to a BOLT12 offer.
 
 ![roygbiv](https://github.com/daGoodenough/bolt12-prism/assets/108303703/2c4ba75d-b0ab-4c3f-a5c4-2202716a04a0)
 
@@ -10,7 +10,7 @@ A CLN plugin for creating and interacting with prisms. This plugin supports rece
 
 This started as the winning hackathon project at [bitcoin++](https://btcpp.dev/) 2023 in Austin, Tx.
 
-Some other projects that compliment this one are
+Other projects that compliment this one include:
 
 - [roygbiv.guide](https://roygbiv.guide) to learn more about prisms.
 - [lnplay](https://github.com/farscapian/lnplay) which integrates the prism plugin
@@ -52,7 +52,6 @@ MEMBERS_JSON=
 ```bash
 lightning-cli prism-create -k members="$MEMBERS_JSON"
 ```
-
 
 ### List Prism IDs
 
@@ -153,7 +152,6 @@ When run, this RPC command will execute (i.e., pay-out) a prism. This is useful 
 
 The output above shows the result of paying to each BOLT12 offer specified in `prism1`. Notice they get equal splits in accordance with the prism policy.
 
-
 ## Bindings
 
 Often you will want your prisms to be paid out whenever you have an incoming payment. This is what a binding is for. Note that ONE and ONLY ONE prism can be bound to any given offer.
@@ -227,7 +225,7 @@ Want to see all your bindings? Run `prism-bindinglist`. (Hint, run `prism-bindin
 }
 ```
 
-Notice that outlay property? That's how the prism plugin deals with failed payments AND fees. When a prism binding has an incoming payment, prism member outlays in the binding are increased according the prism policy and incoming amount.
+Notice that outlay property? That's how the prism plugin deals with failed payments AND Lightning Network fees. When a prism binding has an incoming payment, prism member outlays in the binding are increased according the prism policy and incoming amount.
 
 When a payment to a prism member succeeds, the outlay is decremented by the total amount of the payment (including fees paid when `fees_incurred_by=remote`). When `fees_incurred_by=local` fees are paid by the node operator hosting the prism. Prism member payouts occur when outlays exceed the `payout_threshold` in the respective prism policy. 
 
