@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 from pyln.client import Plugin, RpcError
 from lib import Prism, Member, PrismBinding
+import re
 
 plugin = Plugin()
 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
 
-    # TODO add minimum version check; ie ensure CLN is the correct version for this plugin version.
-    # TODO migrate legacy prisms and bring them up-to-date with this version if necessary
+    getinfoResult = plugin.rpc.getinfo()
+    clnVersion = getinfoResult["version"]
+    #searchString = 'v24.03'
+    numbers = re.findall(r'v(\d+)\.', clnVersion)
+    major_cln_version = int(numbers[0]) if numbers else None
+    #plugin.log(f"major_cln_version: {major_cln_version}")
+    if major_cln_version is not None:
+        if major_cln_version < 24:
+            raise Exception("The BOLT12 Prism plugin is only compatible with CLN v24 and above.")
 
     plugin.log("prism-api initialized")
 
