@@ -97,6 +97,10 @@ class Member:
         self._plugin.rpc.datastore(
             key=self._datastore_key, string=self.to_json(), mode="create-or-replace")
 
+    def delete(self):
+        self._plugin.log(f"Deleting member: {self.id}")
+        self._plugin.rpc.deldatastore(key=self._datastore_key)
+
     def to_json(self):
         return json.dumps({
             "member_id": self.id,
@@ -226,6 +230,20 @@ class Prism:
         self._plugin.rpc.datastore(key=self.datastore_key(id=self.id),
                                    string=self.to_json(member_ids_only=True), mode="create-or-replace")
 
+
+    def delete(self):
+        self._plugin.log(f"Deleting prism: {self.id}", "debug")
+
+        # delete each prism member
+        for member in self.members:
+            self._plugin.log(f"About to call prism.member.delete() on member {member.id}", "debug")
+            member.delete()
+
+        # delete the prism
+        rtnVal = self._plugin.rpc.deldatastore(key=self.datastore_key(id=self.id))
+
+        return rtnVal
+
     def pay(self, amount_msat: int):
         """
         Pay each member in the prism their respective share of `amount_msat`
@@ -288,6 +306,7 @@ class PrismBinding:
         bindings_key = ["prism", prism_db_version,
                         "bind", bolt_version, bind_to]
 
+        binding_records = {}
         try:
             binding_records = plugin.rpc.deldatastore(
                 key=bindings_key)
@@ -297,6 +316,9 @@ class PrismBinding:
         if not binding_records:
             raise Exception(
                 f"Could not find a prism binding for offer {bind_to}")
+
+
+        return binding_records
 
     @staticmethod
     def from_db_string(plugin: Plugin, string: str, bind_to: str, bolt_version: str):

@@ -145,7 +145,7 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
     return add_binding_result
 
 @plugin.method("prism-bindingremove")
-def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
+def remove_prism_binding(plugin, offer_id, bolt_version="bolt12"):
     '''Removes a prism binding.'''
 
     try:
@@ -165,21 +165,37 @@ def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
         raise Exception(f"ERROR: Could not find a binding for offer {offer_id}.")
 
 
-# @plugin.method("prism-delete")
-# def delete_prism(plugin, prism_id):
-#     '''Deletes a prism.'''
+@plugin.method("prism-delete")
+def delete_prism(plugin, prism_id):
+    '''Deletes a prism.'''
+    delete_success = False
 
-#     return_value = prism_id
-#     try:
+    # first thing we do is check whether there are existing bindings.
+    # if there is, then we fail this command. User remove bindings associated
+    # with the prism first!
+    existing_bidings = list_bindings(plugin)
+    prism_id_exists = False
 
-#         # TODO; we can also delete all prism bindings.
+    for binding in existing_bidings['bolt12_prism_bindings']:
+        if binding['prism_id'] == prism_id:
+            prism_id_exists = True
+            break
 
-#         plugin.rpc.deldatastore(prism_id)
-#     except RpcError as e:
-#         raise Exception(f"Prism with ID {prism_id} does not exist.")
+    if prism_id_exists == True:
+        raise Exception(f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
 
-#     return return_value
+    try:
+        prism_to_delete = Prism.get(plugin=plugin, prism_id=prism_id)
 
+        if prism_to_delete is not None:
+            plugin.log(f"prism_to_delete {prism_to_delete}", "debug")
+            delete_success = prism_to_delete.delete()
+
+    except RpcError as e:
+        raise Exception(f"Prism with ID {prism_id} does not exist.")
+
+    #return existing_bidings
+    return { "deleted": delete_success }
 
 @plugin.method("prism-pay")
 def prism_execute(plugin, prism_id, amount_msat=0, label=""):
