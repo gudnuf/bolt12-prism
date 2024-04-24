@@ -87,7 +87,6 @@ class Member:
             "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
         self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get(
             "payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
-        self.outlay = member_dict.get('outlay', 0)
 
         self._plugin = plugin
 
