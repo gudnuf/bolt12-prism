@@ -192,6 +192,16 @@ class Prism:
     def total_splits(self) -> int:
         """sum each members split"""
         return sum([m.split for m in self.members])
+    
+    @property
+    def bindings(self):
+        all_bindings = PrismBinding.list_binding_offers(plugin=self._plugin)
+
+        our_bindings = [b for b in all_bindings if b.prism.id == self.id]
+
+        self._plugin.log(f'This prism\'s bindings: {our_bindings}')
+
+        return our_bindings
 
     def __init__(self, plugin: Plugin, prism_id: str = None, members: List[Member] = None):
         self.validate(members)

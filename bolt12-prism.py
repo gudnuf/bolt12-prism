@@ -168,34 +168,25 @@ def remove_prism_binding(plugin, offer_id, bolt_version="bolt12"):
 @plugin.method("prism-delete")
 def delete_prism(plugin, prism_id):
     '''Deletes a prism.'''
-    delete_success = False
+    prism_to_delete = Prism.get(plugin=plugin, prism_id=prism_id)
 
-    # first thing we do is check whether there are existing bindings.
-    # if there is, then we fail this command. User remove bindings associated
-    # with the prism first!
-    existing_bidings = list_bindings(plugin)
-    prism_id_exists = False
+    # prism should exist
+    if prism_to_delete is None:
+        raise Exception(f"Prism with ID {prism_id} does not exist.")
 
-    for binding in existing_bidings['bolt12_prism_bindings']:
-        if binding['prism_id'] == prism_id:
-            prism_id_exists = True
-            break
-
-    if prism_id_exists == True:
-        raise Exception(f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
+    # prism should not have bindings
+    if len(prism_to_delete.bindings) is not 0:
+        raise Exception(
+            f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
+    
+    plugin.log(f"prism_to_delete {prism_to_delete}", "debug")
 
     try:
-        prism_to_delete = Prism.get(plugin=plugin, prism_id=prism_id)
-
-        if prism_to_delete is not None:
-            plugin.log(f"prism_to_delete {prism_to_delete}", "debug")
-            delete_success = prism_to_delete.delete()
+        deleted_data = prism_to_delete.delete()
+        return {"deleted": deleted_data}
 
     except RpcError as e:
         raise Exception(f"Prism with ID {prism_id} does not exist.")
-
-    #return existing_bidings
-    return { "deleted": delete_success }
 
 @plugin.method("prism-pay")
 def prism_execute(plugin, prism_id, amount_msat=0, label=""):
