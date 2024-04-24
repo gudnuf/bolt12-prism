@@ -255,14 +255,15 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
     plugin.log(f"test2")
 
-    try:
-        amount_msat = invoice_payment['msat']
-        plugin.log(f"amount_msat: {amount_msat}")
-        binding.pay(amount_msat=int(amount_msat))
-        plugin.log(f"test3")
-    except Exception as e:
-        plugin.log(
-            f"ERROR: something went wrong with binding payout {binding.prism.id}. {e}")
+    # try:
+    amount_msat = invoice_payment['msat']
+    plugin.log(f"amount_msat: {amount_msat}")
+    binding.pay(amount_msat=int(amount_msat))
+    plugin.log(f"test3")
+    # except Exception as e:
+    #     plugin.log(
+    #         f"ERROR: something went wrong with binding payout {binding.prism.id}. {e}")
+    
 
     # invoices can only be paid once, so we delete the bolt11 binding
     if bind_type == "bolt11":

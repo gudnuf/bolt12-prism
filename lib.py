@@ -244,7 +244,7 @@ class Prism:
             payment = None
             if bolt12Regex.match(m.destination):
                 try:
-                    self._plugin.log(f"in prism.pay_bolt12regex")
+                    self._plugin.log(f"in prism.pay_bolt12regex", 'debug')
                     bolt12_invoice = self._plugin.rpc.fetchinvoice(offer=m.destination, amount_msat=member_msat)
                     self._plugin.log(f"after fetchinvoice")
                     invoice = bolt12_invoice.get("invoice")
@@ -259,7 +259,7 @@ class Prism:
                     self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
             elif pubkeyRegex.match(m.destination):
                 try:
-                    self._plugin.log(f"Attempting keysend payment for {member_msat}msats to node with pubkey {m.destination}", 'info')
+                    self._plugin.log(f"Attempting keysend payment for {member_msat}msats to node with pubkey {m.destination}", 'debug')
                     payment = self._plugin.rpc.keysend(destination=m.destination, amount_msat=member_msat)
                     self._plugin.log(f"keysend_payment:  {payment}")
                 except RpcError as e:
@@ -271,7 +271,7 @@ class Prism:
                 results[m.id] = None
 
         self._plugin.log(
-            f"PRISM-PAY: ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'info')
+            f"PRISM-PAY: ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'debug')
 
         return results
 
@@ -514,9 +514,9 @@ class PrismBinding:
         self.update_outlays(payment_results)
         # ################3
 
-        #self._plugin.log(f"PAYMENT RESULTS: {payment_results}")
+        self._plugin.log(f"PAYMENT RESULTS: {payment_results}", 'debug')
 
-        return true
+        return True
 
     # # this method finds any prismbindings in the db then returns one and only
     # # one PrismBinding object. Note this function isn't super efficient due to the
