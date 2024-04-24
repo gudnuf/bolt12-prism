@@ -8,16 +8,16 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         clightning = pkgs.clightning.overrideAttrs (final: prev: {
-            version = "v23.11rc1";
+            version = "v24.02.2";
             src = pkgs.fetchFromGitHub {
                 owner = "ElementsProject";
                 repo = "lightning";
-                rev = "v23.11rc1";
+                rev = "v24.02.2";
                 fetchSubmodules = true;
-                sha256 = "sha256-qKmb++5DrJ8/hgg+mksOSPo3h5m3aAGOHBR6BkZw3TM=";
+                sha256 = "sha256-C5jCZQnLmhuMTNHalstVxztq7EFqpRUHf7dqfSicQlI=";
             };
             configureFlags = [ "--disable-valgrind" ];
-            makeFlags = [ "VERSION=v23.11rc1" ];
+            makeFlags = [ "VERSION=v24.02.2" ];
         });
         pyln_bolt7 = pkgs.python3Packages.buildPythonPackage rec {
             pname = "pyln_bolt7";
