@@ -252,21 +252,16 @@ def on_payment(plugin, invoice_payment, **kwargs):
     binding = None
     binding = PrismBinding.get(plugin, bind_to, bind_type)
 
-    plugin.log(f"test1")
-
     #plugin.log(f"binding: {binding.id}")
 
     if not binding:
         plugin.log("Incoming payment not associated with prism binding. Nothing to do.", "info")
         return
 
-    plugin.log(f"test2")
-
     # try:
     amount_msat = invoice_payment['msat']
     plugin.log(f"amount_msat: {amount_msat}")
     binding.pay(amount_msat=int(amount_msat))
-    plugin.log(f"test3")
     # except Exception as e:
     #     plugin.log(
     #         f"ERROR: something went wrong with binding payout {binding.prism.id}. {e}")
