@@ -14,7 +14,7 @@ def init(options, configuration, plugin, **kwargs):
     numbers = re.findall(r'v(\d+)\.', clnVersion)
     major_cln_version = int(numbers[0]) if numbers else None
     #plugin.log(f"major_cln_version: {major_cln_version}")
-    if major_cln_version is not None:
+    if major_cln_version != None:
         if major_cln_version < 24:
             raise Exception("The BOLT12 Prism plugin is only compatible with CLN v24 and above.")
 
@@ -175,7 +175,7 @@ def delete_prism(plugin, prism_id):
         raise Exception(f"Prism with ID {prism_id} does not exist.")
 
     # prism should not have bindings
-    if len(prism_to_delete.bindings) is not 0:
+    if len(prism_to_delete.bindings) != 0:
         raise Exception(
             f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
     
