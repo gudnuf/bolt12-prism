@@ -254,26 +254,34 @@ class Prism:
 
         return rtnVal
 
-    def pay(self, amount_msat: int):
+    def pay(self, amount_msat: int, binding = None):
         """
         Pay each member in the prism their respective share of `amount_msat`
         """
 
-        pay_queue = {}
         results = {}
 
         for m in self.members:
-            
-            # this member_msat SHOULD BE the member outlay.
-            member_msat = math.floor(amount_msat * (m.split / self.total_splits))
-            #self._plugin.log(f"member_msat {member_msat} ")
+            member_msat = 0
+
+            if binding is None:
+                # when a binding is not provided (when we're using prism.pay, for example)
+                # the member_msat is set to the proportional share of defined in the split defintion
+                member_msat = math.floor(amount_msat * (m.split / self.total_splits))
+                self._plugin.log(f"In Prism.pay, but no binding was provided. Setting member_msat to {member_msat}")
+                #self._plugin.log(f"member_msat {member_msat} ")
+            else:
+                # but if the user provids a binding object, then we set the member_msat to the
+                # outlay for the respective prism member.
+                member_msat = binding.outlays[m.id]
+                self._plugin.log(f"In Prism.pay, and a binding was provided. Setting member_msat to the member's outlay: {member_msat}")
 
             payment = None
             if bolt12Regex.match(m.destination):
                 try:
                     self._plugin.log(f"in prism.pay_bolt12regex", 'debug')
                     bolt12_invoice = self._plugin.rpc.fetchinvoice(offer=m.destination, amount_msat=member_msat)
-                    self._plugin.log(f"after fetchinvoice")
+
                     invoice = bolt12_invoice.get("invoice")
 
                     if invoice is not None:
@@ -506,7 +514,6 @@ class PrismBinding:
         self.save()
 
     def update_outlays(self, payment_results):
-        self._plugin.log(f"Decrementing outlays.")
         new_outlays = {}
         for member_id, outlay in self.outlays.items():
             payment_amount = 0
@@ -527,7 +534,7 @@ class PrismBinding:
 
             new_outlays[member_id] = new_outlay
 
-        self._plugin.log(f"NEW OUTLAYS: {new_outlays}")
+        self._plugin.log(f"New outlay values after decrementing: {new_outlays}")
         self.outlays = new_outlays
 
         self.save()
@@ -541,7 +548,7 @@ class PrismBinding:
         self.increment_outlays(amount_msat=amount_msat)
 
         # TODO we need to narrow the gap between these two functions.
-        payment_results = self.prism.pay(amount_msat)
+        payment_results = self.prism.pay(amount_msat, binding=self)
         self.update_outlays(payment_results)
         # ################3
 
