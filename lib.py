@@ -254,7 +254,7 @@ class Prism:
 
         return rtnVal
 
-    def pay(self, amount_msat: int, binding: None):
+    def pay(self, amount_msat: int, binding = None):
         """
         Pay each member in the prism their respective share of `amount_msat`
         """
