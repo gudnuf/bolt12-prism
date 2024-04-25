@@ -145,7 +145,7 @@ def bindprism(plugin: Plugin, prism_id, bind_to, bolt_version="bolt12"):
     return add_binding_result
 
 @plugin.method("prism-bindingremove")
-def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
+def remove_prism_binding(plugin, offer_id, bolt_version="bolt12"):
     '''Removes a prism binding.'''
 
     try:
@@ -165,21 +165,28 @@ def remove_prism_binding(plugin, offer_id, prism_id, bolt_version="bolt12"):
         raise Exception(f"ERROR: Could not find a binding for offer {offer_id}.")
 
 
-# @plugin.method("prism-delete")
-# def delete_prism(plugin, prism_id):
-#     '''Deletes a prism.'''
+@plugin.method("prism-delete")
+def delete_prism(plugin, prism_id):
+    '''Deletes a prism.'''
+    prism_to_delete = Prism.get(plugin=plugin, prism_id=prism_id)
 
-#     return_value = prism_id
-#     try:
+    # prism should exist
+    if prism_to_delete is None:
+        raise Exception(f"Prism with ID {prism_id} does not exist.")
 
-#         # TODO; we can also delete all prism bindings.
+    # prism should not have bindings
+    if len(prism_to_delete.bindings) is not 0:
+        raise Exception(
+            f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
+    
+    plugin.log(f"prism_to_delete {prism_to_delete}", "debug")
 
-#         plugin.rpc.deldatastore(prism_id)
-#     except RpcError as e:
-#         raise Exception(f"Prism with ID {prism_id} does not exist.")
+    try:
+        deleted_data = prism_to_delete.delete()
+        return {"deleted": deleted_data}
 
-#     return return_value
-
+    except RpcError as e:
+        raise Exception(f"Prism with ID {prism_id} does not exist.")
 
 @plugin.method("prism-pay")
 def prism_execute(plugin, prism_id, amount_msat=0, label=""):
