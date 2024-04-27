@@ -36,30 +36,26 @@ def createprism(plugin, members, prism_id=""):
     # return the prism json
     return prism.to_dict()
 
-
-@plugin.method("prism-show")
-def showprism(plugin, prism_id):
-    '''Show the details of a single prism.'''
-
-    prism = Prism.get(plugin=plugin, prism_id=prism_id)
-
-    if prism is None:
-        raise Exception(f"Prism with id {prism_id} not found.")
-
-    return prism.to_dict()
-
-
 @plugin.method("prism-list")
-def listprisms(plugin):
-    '''List all prisms.'''
-    try:
-        return {
-            "prism_ids": Prism.find_all(plugin)
-        }
+def listprisms(plugin, prism_id=None):
+    '''List prisms.'''
 
-    except RpcError as e:
-        plugin.log(e)
-        return e
+    if prism_id == None:
+        try:
+            return {
+                "prism_ids": Prism.find_all(plugin)
+            }
+
+        except RpcError as e:
+            plugin.log(e)
+            return e
+    else:
+        prism = Prism.get(plugin=plugin, prism_id=prism_id)
+
+        if prism is None:
+            raise Exception(f"Prism with id {prism_id} not found.")
+
+        return prism.to_dict()
 
 
 @plugin.method("prism-update")
