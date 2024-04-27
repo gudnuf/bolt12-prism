@@ -90,30 +90,29 @@ def updateprism(plugin, prism_id, members):
 
 
 @plugin.method("prism-bindinglist")
-def list_bindings(plugin, bolt_version="bolt12"):
+def list_bindings(plugin, bind_to=None, bolt_version="bolt12"):
     '''Lists all prism bindings.'''
 
-    binding_offers = PrismBinding.list_binding_offers(
-        plugin, bolt_version=bolt_version)
-    response = {
-        f"{bolt_version}_prism_bindings": [binding.to_dict() for binding in binding_offers]
-    }
+    if bind_to == None:
 
-    return response
+        binding_offers = PrismBinding.list_binding_offers(
+            plugin, bolt_version=bolt_version)
+        response = {
+            f"{bolt_version}_prism_bindings": [binding.to_dict() for binding in binding_offers]
+        }
 
+        return response
+    else:
 
-@plugin.method("prism-bindingshow")
-def get_binding(plugin, bind_to, bolt_version="bolt12"):
-    '''Show the bindings of a specific prism.'''
+        binding = PrismBinding.get(plugin, bind_to, bolt_version)
 
-    binding = PrismBinding.get(plugin, bind_to, bolt_version)
+        if not binding:
+            raise Exception("ERROR: could not find a binding for this offer.")
 
-    if not binding:
-        raise Exception("ERROR: could not find a binding for this offer.")
+        plugin.log(f"prism-bindingsbindinghow executed for {bolt_version} offer '{bind_to}'", "info")
 
-    plugin.log(f"prism-bindingsbindinghow executed for {bolt_version} offer '{bind_to}'", "info")
+        return binding.to_dict()
 
-    return binding.to_dict()
 
 # adds a binding to the database.
 @plugin.method("prism-bindingadd")
