@@ -5,6 +5,8 @@ import os
 import uuid
 import json
 import math
+import time
+
 
 # TODO: find a way to define this dynamically or decide that doesn't make sense to do
 prism_db_version = "v2"
@@ -207,6 +209,7 @@ class Prism:
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
+        self.timestamp = time.time()
         self._plugin = plugin
 
     def to_json(self, member_ids_only=False):
@@ -217,12 +220,14 @@ class Prism:
             members = [member.to_dict() for member in self.members]
         return json.dumps({
             "prism_id": self.id,
+            "timestamp": self.timestamp,
             "prism_members": members
         })
 
     def to_dict(self):
         return {
             "prism_id": self.id,
+            "timestamp": self.timestamp,
             "prism_members": [member.to_dict() for member in self.members]
         }
 
@@ -231,6 +236,8 @@ class Prism:
 
     def save(self):
         self._plugin.log(f"Saving prism: {self.id}")
+
+        # TODO add a 'last_updated_timestamp' to prism data
 
         # save each prism member
         for member in self.members:
@@ -402,9 +409,11 @@ class PrismBinding:
 
         if not prism:
             raise Exception(f"Could not find prism: {prism_id}")
+        timestamp = time.time()
 
         binding_value = {
             "prism_id": prism_id,
+            "timestamp": timestamp,
             "member_outlays": {member.id: "0msat" for member in members}
         }
 
@@ -453,6 +462,7 @@ class PrismBinding:
 
         self._plugin = plugin
         self.offer_id = offer_id
+        self.timestamp = time.time()
         self.bolt_version = bolt_version
         self.members = None
 
@@ -461,6 +471,7 @@ class PrismBinding:
 
         if binding_dict:
             self.offer_id = binding_dict.get("offer_id")
+            self.timestamp = binding_dict.get("timestamp")
             self.members = binding_dict
 
         self._datastore_key = ["prism", prism_db_version,
@@ -470,18 +481,21 @@ class PrismBinding:
         return {
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
+            "timestamp": self.timestamp,
             "member_outlays": self.outlays
         }
 
     def to_json(self):
         return {
             "offer_id": self.offer_id,
-            "prism_id": self.prism.id
+            "prism_id": self.prism.id,
+            "timestamp": self.timestamp
         }
 
     def save(self):
         string = json.dumps({
             "prism_id": self.prism.id,
+            "timestamp": self.timestamp,
             "member_outlays": self.outlays
         })
 
