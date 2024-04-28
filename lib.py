@@ -124,27 +124,6 @@ class Member:
             "payout_threshold": self.payout_threshold
         }
 
-    # this static method returns a list of Members for a given prism_id
-    # the result of which can be used in the Prism Constructor.
-
-    # @staticmethod
-    # def get_prism_members(plugin: Plugin, prism_id):
-    #     prism_key = ["prism", prism_db_version, "prism", prism_id]
-    #     member_records = plugin.rpc.listdatastore(
-    #         key=prism_key).get("datastore")
-
-    #     members = []
-
-    #     for member_record in member_records:
-    #         member_dict = json.loads(member_record['string'])
-    #         member = Member(prism_id=prism_id, member_dict=member_dict)
-    #         members.append(member)
-
-    #     return members
-
-# TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
-
-
 class Prism:
     @staticmethod
     def datastore_key(id):
@@ -556,61 +535,12 @@ class PrismBinding:
     def pay(self, amount_msat):
 
         payment_results = None
-
-        #self._plugin.log(f"PRISM_BINDING_PAY {self.members}", )
-        #self._plugin.log(f"ABOUT TO MODIFY OUTLAYS" )
         self.increment_outlays(amount_msat=amount_msat)
 
         # TODO we need to narrow the gap between these two functions.
         payment_results = self.prism.pay(amount_msat, binding=self)
         self.update_outlays(payment_results)
-        # ################3
 
         self._plugin.log(f"PAYMENT RESULTS: {payment_results}", 'debug')
 
         return True
-
-    # # this method finds any prismbindings in the db then returns one and only
-    # # one PrismBinding object. Note this function isn't super efficient due to the
-    # # prism_bindings in the db being keyed on offer_id rather than prism_id.
-    # # this function takes a prism ID and returns the assocaited PrismBinding object
-    # @staticmethod
-    # def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
-
-    #     prism_binding = None
-
-    #     # so, need to pull all prism binding records and iterate over each one
-    #     # to see if it contains the current prism_id is the content of the record.
-    #     # this seems odd; but required since invoice_payment
-    #     prism_records_key = [ "prism", prism_db_version, "bind", bolt_version ]
-
-    #     plugin.log(f"prism_records_key: {prism_records_key}")
-
-    #     prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
-
-    #     plugin.log(f"prism_binding_records: {prism_binding_records}")
-
-    #     relevant_offer_ids_for_prism = []
-    #     prism_binding = None
-    #     offer_id = None
-
-    #     for binding_record in prism_binding_records:
-    #         list_of_prisms_in_binding_record = json.dumps(binding_record['string'])
-    #         plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
-
-    #         if prism_id in list_of_prisms_in_binding_record:
-    #             offer_id = binding_record["key"][3]
-    #             relevant_offer_ids_for_prism.append(offer_id)
-
-    #     plugin.log(f"get_binding->offer_id: {offer_id}")
-    #     plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
-    #     plugin.log(f"get_binding->bolt_version: {bolt_version}")
-
-    #     prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
-
-    #     plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
-
-    #     return prism_binding
-
-    # this method shows the current state of  a specific binding.
-    # bindings are
