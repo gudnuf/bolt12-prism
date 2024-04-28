@@ -28,10 +28,7 @@ def createprism(plugin, members, prism_id=""):
     prism_members = [Member(plugin=plugin, member_dict=m) for m in members]
 
     # create a new prism object (this is used for our return object only)
-    prism = Prism(plugin, prism_id, prism_members)
-
-    # save all the record to the database
-    prism.save()
+    prism = Prism.create(plugin, prism_id, prism_members)
 
     # return the prism json
     return prism.to_dict()
@@ -72,13 +69,10 @@ def updateprism(plugin, prism_id, members):
         updated_members = [
             Member(plugin=plugin, member_dict=member) for member in members]
 
-        updated_prism_object = Prism(
-            plugin, prism_id=prism_id, members=updated_members)
-
-        updated_prism_object.save()
+        prism.update(members=updated_members)
 
         # return prism as a dict
-        return updated_prism_object.to_dict()
+        return prism.to_dict()
 
     except RpcError as e:
         plugin.log(e)

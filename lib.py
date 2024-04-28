@@ -5,6 +5,8 @@ import os
 import uuid
 import json
 import math
+import time
+
 
 # TODO: find a way to define this dynamically or decide that doesn't make sense to do
 prism_db_version = "v2"
@@ -122,27 +124,6 @@ class Member:
             "payout_threshold": self.payout_threshold
         }
 
-    # this static method returns a list of Members for a given prism_id
-    # the result of which can be used in the Prism Constructor.
-
-    # @staticmethod
-    # def get_prism_members(plugin: Plugin, prism_id):
-    #     prism_key = ["prism", prism_db_version, "prism", prism_id]
-    #     member_records = plugin.rpc.listdatastore(
-    #         key=prism_key).get("datastore")
-
-    #     members = []
-
-    #     for member_record in member_records:
-    #         member_dict = json.loads(member_record['string'])
-    #         member = Member(prism_id=prism_id, member_dict=member_dict)
-    #         members.append(member)
-
-    #     return members
-
-# TODO: init Prism with the plugin instance, or maybe just plugin.rpc?
-
-
 class Prism:
     @staticmethod
     def datastore_key(id):
@@ -156,7 +137,9 @@ class Prism:
 
         members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
-        return Prism(plugin, prism_id=prism_id, members=members)
+        timestamp = prism_dict.get("timestamp", 0)
+
+        return Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members)
 
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -179,6 +162,14 @@ class Prism:
             prism_ids.append(prism_id)
 
         return prism_ids
+    
+    @staticmethod
+    def create(plugin: Plugin, prism_id: str = None, members: List[Member] = None):
+        timestamp = round(time.time())
+        prism = Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members)
+        prism.save()
+        return prism
+
 
     @staticmethod
     def validate(members):
@@ -203,10 +194,11 @@ class Prism:
 
         return our_bindings
 
-    def __init__(self, plugin: Plugin, prism_id: str = None, members: List[Member] = None):
+    def __init__(self, plugin: Plugin, timestamp: str, prism_id: str = None, members: List[Member] = None):
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
+        self.timestamp = timestamp
         self._plugin = plugin
 
     def to_json(self, member_ids_only=False):
@@ -217,12 +209,14 @@ class Prism:
             members = [member.to_dict() for member in self.members]
         return json.dumps({
             "prism_id": self.id,
+            "timestamp": self.timestamp,
             "prism_members": members
         })
 
     def to_dict(self):
         return {
             "prism_id": self.id,
+            "timestamp": self.timestamp,
             "prism_members": [member.to_dict() for member in self.members]
         }
 
@@ -232,6 +226,8 @@ class Prism:
     def save(self):
         self._plugin.log(f"Saving prism: {self.id}")
 
+        # TODO add a 'last_updated_timestamp' to prism data
+
         # save each prism member
         for member in self.members:
             member.save()
@@ -239,6 +235,13 @@ class Prism:
         # save the prism
         self._plugin.rpc.datastore(key=self.datastore_key(id=self.id),
                                    string=self.to_json(member_ids_only=True), mode="create-or-replace")
+        
+    def update(self, members: List[Member]):
+        self._plugin.log(f"Updating prism: {self.id}")
+
+        self.members = members
+
+        self.save() 
 
 
     def delete(self):
@@ -344,6 +347,7 @@ class PrismBinding:
 
         prism_id = parsed.get('prism_id', None)
         member_outlays = parsed.get('member_outlays', None)
+        timestamp = parsed.get('timestamp', 0)
 
         if not prism_id:
             raise Exception("Invalid binding. Missing prism_id")
@@ -351,7 +355,7 @@ class PrismBinding:
         if not member_outlays:
             raise Exception("Invalid binding. Missing member_outlays")
 
-        return PrismBinding(plugin, outlays=member_outlays, offer_id=bind_to, prism_id=prism_id, bolt_version=bolt_version)
+        return PrismBinding(plugin, timestamp=timestamp, outlays=member_outlays, offer_id=bind_to, prism_id=prism_id, bolt_version=bolt_version)
 
     @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
@@ -402,9 +406,11 @@ class PrismBinding:
 
         if not prism:
             raise Exception(f"Could not find prism: {prism_id}")
+        timestamp = round(time.time())
 
         binding_value = {
             "prism_id": prism_id,
+            "timestamp": timestamp,
             "member_outlays": {member.id: "0msat" for member in members}
         }
 
@@ -414,6 +420,7 @@ class PrismBinding:
 
         response = {
             "status": dbmode,
+            "timestamp": timestamp,
             "bind_to": bind_to,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
@@ -449,10 +456,11 @@ class PrismBinding:
     def datastore_key(self):
         return self._datastore_key
 
-    def __init__(self, plugin: Plugin, outlays, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
+    def __init__(self, plugin: Plugin, timestamp: int, outlays, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
 
         self._plugin = plugin
         self.offer_id = offer_id
+        self.timestamp = timestamp
         self.bolt_version = bolt_version
         self.members = None
 
@@ -461,6 +469,7 @@ class PrismBinding:
 
         if binding_dict:
             self.offer_id = binding_dict.get("offer_id")
+            self.timestamp = binding_dict.get("timestamp")
             self.members = binding_dict
 
         self._datastore_key = ["prism", prism_db_version,
@@ -470,18 +479,21 @@ class PrismBinding:
         return {
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
+            "timestamp": self.timestamp,
             "member_outlays": self.outlays
         }
 
     def to_json(self):
         return {
             "offer_id": self.offer_id,
-            "prism_id": self.prism.id
+            "prism_id": self.prism.id,
+            "timestamp": self.timestamp
         }
 
     def save(self):
         string = json.dumps({
             "prism_id": self.prism.id,
+            "timestamp": self.timestamp,
             "member_outlays": self.outlays
         })
 
@@ -542,61 +554,12 @@ class PrismBinding:
     def pay(self, amount_msat):
 
         payment_results = None
-
-        #self._plugin.log(f"PRISM_BINDING_PAY {self.members}", )
-        #self._plugin.log(f"ABOUT TO MODIFY OUTLAYS" )
         self.increment_outlays(amount_msat=amount_msat)
 
         # TODO we need to narrow the gap between these two functions.
         payment_results = self.prism.pay(amount_msat, binding=self)
         self.update_outlays(payment_results)
-        # ################3
 
         self._plugin.log(f"PAYMENT RESULTS: {payment_results}", 'debug')
 
         return True
-
-    # # this method finds any prismbindings in the db then returns one and only
-    # # one PrismBinding object. Note this function isn't super efficient due to the
-    # # prism_bindings in the db being keyed on offer_id rather than prism_id.
-    # # this function takes a prism ID and returns the assocaited PrismBinding object
-    # @staticmethod
-    # def get_prism_offer_binding(plugin: Plugin, prism_id: str, bolt_version="bolt12"):
-
-    #     prism_binding = None
-
-    #     # so, need to pull all prism binding records and iterate over each one
-    #     # to see if it contains the current prism_id is the content of the record.
-    #     # this seems odd; but required since invoice_payment
-    #     prism_records_key = [ "prism", prism_db_version, "bind", bolt_version ]
-
-    #     plugin.log(f"prism_records_key: {prism_records_key}")
-
-    #     prism_binding_records = plugin.rpc.listdatastore(key=prism_records_key)["datastore"]
-
-    #     plugin.log(f"prism_binding_records: {prism_binding_records}")
-
-    #     relevant_offer_ids_for_prism = []
-    #     prism_binding = None
-    #     offer_id = None
-
-    #     for binding_record in prism_binding_records:
-    #         list_of_prisms_in_binding_record = json.dumps(binding_record['string'])
-    #         plugin.log(f"list_of_prisms_in_binding_record: {list_of_prisms_in_binding_record}")
-
-    #         if prism_id in list_of_prisms_in_binding_record:
-    #             offer_id = binding_record["key"][3]
-    #             relevant_offer_ids_for_prism.append(offer_id)
-
-    #     plugin.log(f"get_binding->offer_id: {offer_id}")
-    #     plugin.log(f"get_binding->relevant_offer_ids_for_prism: {relevant_offer_ids_for_prism}")
-    #     plugin.log(f"get_binding->bolt_version: {bolt_version}")
-
-    #     prism_binding = PrismBinding(offer_id=offer_id, prism_ids=relevant_offer_ids_for_prism, bolt_version=bolt_version)
-
-    #     plugin.log(f"get_binding->prism_binding: {prism_binding.to_dict()}")
-
-    #     return prism_binding
-
-    # this method shows the current state of  a specific binding.
-    # bindings are
