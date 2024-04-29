@@ -23,9 +23,11 @@ def test_basic_test(node_factory):
 
     # Bob -> all others
     assert len(l2.rpc.listpeers()['peers']) == 4
+    # TODO we don't really know which index an id will be in; just search for existence?
 
     #try:
     assert l2.rpc.plugin_start(plugin_path)
     assert l2.rpc.plugin_list()
-    #assert l2.rpc.prism_list()
+    assert l2.rpc.prism_list()
+    assert l2.rpc.prism_bindinglist()
     assert l2.rpc.plugin_stop(plugin_path)
