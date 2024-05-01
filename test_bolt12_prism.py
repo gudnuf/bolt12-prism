@@ -2,7 +2,7 @@ import os
 from pyln.testing.fixtures import *  # noqa: F401,F403
 from pyln.client import Millisatoshi
 
-plugin_path = os.path.join(os.path.dirname(__file__), '../bolt12-prism.py')
+plugin_path = os.path.join(os.path.dirname(__file__), './bolt12-prism.py')
 plugin_opt = {'plugin': plugin_path}
 
 # spin up a network
@@ -26,7 +26,7 @@ def test_basic_test(node_factory):
     # TODO we don't really know which index an id will be in; just search for existence?
 
     #try:
-    assert l2.rpc.plugin_start(plugin_path)
+    assert l2.rpc.plugin_start(plugin_path), "Failed to start plugin"
     assert l2.rpc.plugin_list()
     assert l2.rpc.prism_list()
     assert l2.rpc.prism_bindinglist()

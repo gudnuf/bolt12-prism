@@ -4,5 +4,4 @@ set -ex
 
 cd /cln-plugins
 
-sleep 5000
-#pytest
+python3 -m pytest .
