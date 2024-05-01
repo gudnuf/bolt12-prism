@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install pytest pyln-testing==24.2.1
 
-ENV PATH="/path/to/pytest/location:${PATH}"
-
 RUN mkdir /cln-plugins
 ADD *.py /cln-plugins
 WORKDIR /cln-plugins
