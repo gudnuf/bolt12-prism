@@ -92,19 +92,22 @@ def updateprism(plugin, prism_id, members):
 
 
 @plugin.method("prism-bindinglist")
-def list_bindings(plugin, offer_id=None):
+def list_bindings(plugin, offer_id=None, invoice_label=""):
     '''Lists all prism bindings.'''
 
-    if offer_id == None:
+    bolt12_prism_response = None
+    
+    # if an offer_id is not supplied and also an invoice_label, then we return all bindings.
+    if offer_id == None and invoice_label == "":
 
         binding_offers = PrismBinding.list_binding_offers(plugin)
-        response = {
-            f"prism_bindings": [binding.to_dict() for binding in binding_offers]
+        prism_response = {
+            f"bolt12_prism_bindings": [binding.to_dict() for binding in binding_offers]
         }
 
-        return response
-    else:
+    if offer_id != None:
 
+        # then we're going to return a single binding.
         binding = PrismBinding.get(plugin, offer_id)
 
         if not binding:
@@ -112,7 +115,27 @@ def list_bindings(plugin, offer_id=None):
 
         plugin.log(f"prism-bindingslist executed for '{offer_id}'", "info")
 
-        return binding.to_dict()
+        prism_response = {
+            f"bolt12_prism_bindings": binding.to_dict()
+        }
+
+    if offer_id == None and invoice_label != "":
+
+        # then we're going to return a single binding.
+        binding = PrismBinding.get(plugin, bind_to=invoice_label, bolt_version="bolt11")
+
+        if not binding:
+            raise Exception("ERROR: could not find a binding for this offer.")
+
+        plugin.log(f"prism-bindingslist executed for '{offer_id}'", "info")
+
+        prism_response = {
+            f"bolt11_prism_bindings": binding.to_dict()
+        }
+
+
+    return prism_response
+
 
 
 # adds a binding to the database.
