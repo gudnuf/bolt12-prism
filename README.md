@@ -211,7 +211,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
 
 ### List Prism Bindings
 
-Want to see all your bindings? Run `prism-bindinglist`. (Hint, run `prism-bindingshow` to list a specific binding state.)
+Want to see all your bindings? Run `prism-bindinglist`. Add an `offer_id` to view a specific binding.
 
 `lightning-cli -k prism-bindinglist`
 
