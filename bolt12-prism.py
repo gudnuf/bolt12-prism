@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
-from pyln.client import Plugin, RpcError
-from lib import Prism, Member, PrismBinding
-import re
+
+try:
+    from pyln.client import Plugin, RpcError
+    from lib import Prism, Member, PrismBinding
+    import re
+except ModuleNotFoundError as err:
+    # OK, something is not installed?
+    import json
+    import sys
+    getmanifest = json.loads(sys.stdin.readline())
+    print(json.dumps({'jsonrpc': "2.0",
+                      'id': getmanifest['id'],
+                      'result': {'disable': str(err)}}))
+    sys.exit(1)
+
 
 plugin = Plugin()
 

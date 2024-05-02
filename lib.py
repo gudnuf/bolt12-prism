@@ -1,12 +1,21 @@
-from typing import List
-from pyln.client import Plugin, Millisatoshi, RpcError
-import re
-import os
-import uuid
-import json
-import math
-import time
-
+try:
+    from typing import List
+    from pyln.client import Plugin, Millisatoshi, RpcError
+    import re
+    import os
+    import uuid
+    import json
+    import math
+    import time
+except ModuleNotFoundError as err:
+    # OK, something is not installed?
+    import json
+    import sys
+    getmanifest = json.loads(sys.stdin.readline())
+    print(json.dumps({'jsonrpc': "2.0",
+                      'id': getmanifest['id'],
+                      'result': {'disable': str(err)}}))
+    sys.exit(1)
 
 # TODO: find a way to define this dynamically or decide that doesn't make sense to do
 prism_db_version = "v2"
