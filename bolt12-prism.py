@@ -49,16 +49,24 @@ def createprism(plugin, members, prism_id=""):
 def listprisms(plugin, prism_id=None):
     '''List prisms.'''
 
+    # if a prism_id is not supplied, we return all prism policy objects (like in listoffers)
     if prism_id == None:
         try:
+            prism_ids = Prism.find_all(plugin)
+            prisms = []
+            for prism_id in prism_ids:
+                prism = Prism.get(plugin=plugin, prism_id=prism_id)
+                prisms.append(prism)
+
             return {
-                "prism_ids": Prism.find_all(plugin)
+                "prisms": [prism.to_dict() for prism in prisms]
             }
 
         except RpcError as e:
             plugin.log(e)
             return e
     else:
+        # otherwise we return a single document.
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
 
         if prism is None:
