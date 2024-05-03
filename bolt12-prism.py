@@ -240,40 +240,27 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
     '''Executes (pays-out) a prism.'''
 
     plugin.log(
-        f"In prism_execute with prism_ID {prism_id} and amount = {amount_msat}")
+        f"In prism-pay with prism_ID {prism_id} and amount = {amount_msat}")
 
     if not isinstance(amount_msat, int):
         raise Exception("ERROR: amount_msat is the incorrect type.")
 
     if amount_msat <= 0:
-        plugin.log(f"ERROR: amount_msat must be greater than 0.")
         raise Exception("ERROR: amount_msat must be greater than 0.")
-
-    # # TODO; first thing we should do here probably is update the Prism with new outlay values.
-    # # that way we can immediately record/persist
-    plugin.log(f"{amount_msat}")
-    plugin.log(
-        f"Starting prism_execute for prism_id: {prism_id} for {amount_msat}msats.")
 
     prism = Prism.get(plugin, prism_id)
 
     if prism is None:
         raise Exception("ERROR: could not find prism.")
 
-    # if prism.members is None:
-    #     raise Exception(f"ERROR: Could not extract prism_members for prism {prism_id}")
-    plugin.log("PAYING")
     pay_results = prism.pay(amount_msat=amount_msat)
 
     return {
             "prism_member_payouts": pay_results
         }
 
-
 @plugin.subscribe("invoice_payment")
 def on_payment(plugin, invoice_payment, **kwargs):
-
-    #plugin.log(f"Incoming invoice_payment {invoice_payment}", 'info')
 
     # try:
     payment_label = invoice_payment["label"]
