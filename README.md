@@ -59,52 +59,37 @@ lightning-cli prism-create -k members="$MEMBERS_JSON"
 
 Need to delete a prism from the database? Use `prism-delete prism_id`. Be sure to remove any bindings first (see below)!
 
-### List Prism IDs
+### List prisms
 
-Let's say you have three prisms defined, one of which you specified and ID for. `prism-list` might look something like this:
+Run the following command to view a prism policy. (Note that you can omit the `prism_id` and all prisms will be returned.)
 
-`lightning-cli prism-list`
-
-```json
-{
-   "prism_ids": [
-      "1ae57a94-1a57-4d9c-aabe-5da1dd340edd",
-      "88a743d1-da8c-4cbe-afdc-9db58e154dc5",
-      "prism1"
-   ]
-}
-```
-
-## Show a Prism
-
-Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definition. This document specifies the POLICY of the prism.
-
-`lightning-cli prism-show -k prism_id="prism1"`
+`lightning-cli prism-list prism1`
 
 ```json
 {
    "prism_id": "prism1",
+   "timestamp": 1714759630,
    "prism_members": [
       {
-         "member_id": "0922ff11-15fb-428f-9607-fd3ad9096964",
+         "member_id": "e2548e67-f0a6-4203-b43d-d0edc0c2964a",
          "label": "Carol",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdtj0zz3uhtcys42fnkhmvn96spym62l25xa69knd6kp3jncaf3py",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvdt6lccaa4fw3dgw4dczt8ae8v69999j0uyrrsfhepg7tqwg2k4z",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
       },
       {
-         "member_id": "394c41d9-a9a6-4c5d-916f-083105ec35b7",
+         "member_id": "9a64efaa-3ac8-4b2d-af4b-36ab1846acdd",
          "label": "Dave",
-         "destination": "0258dc215bef8eca15ceb424aea162519cbc40d0b9b0eb107339bc7432de51c0e1",
+         "destination": "03e5700104d1b6e2602a2dfda5b497d9c6862597865d46e3ded8404bf4067250e2",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
       },
       {
-         "member_id": "02eceb88-b64d-4129-b861-cb5c3d231a46",
+         "member_id": "4faf43bc-5595-4239-90d1-576cbe1caf91",
          "label": "Erin",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0f0y265urvvj5sp2wqdr0m2w53ec56elpanvd6x5zk6mw0awcl85",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdeza5wk7pdd674uv2nzcgprvlwxjtjxman4ezl6j3ghh0wq65u7v",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
@@ -119,37 +104,39 @@ Ok cool, you have some prism_ids. Now use `prism-show` to view the prism definit
 
 When run, this RPC command will execute (i.e., pay-out) a prism. This is useful if you need to interactively execute a prism payout [another CLN plugin](https://github.com/farscapian/lnplay/tree/tabconf/lnplay/clightning/cln-plugins/lnplaylive). You can specify the optional `label` paramemter to associate this payout to some external `id`.
 
+> Note, Prism payouts via `prism-pay` DO NOT respect the payment_threshold. Your node will pay for all member payout fees when using `prism-pay`. Consider adding a binding so that fees can be tracked by maintaing a member outlay.
+
 ```json
 {
    "prism_member_payouts": {
-      "0922ff11-15fb-428f-9607-fd3ad9096964": {
-         "destination": "0357278851e5d78242aa4ced7db265d4024de95f550ddd16d36eac18ca78ea6212",
-         "payment_hash": "871aa78ad8b30dc95bb24a50dc76de33f17e2ebb17b1689970fd1bc17e826751",
-         "created_at": 1714147772.989214,
+      "2503e139-760c-48fc-90f0-66e88780ece4": {
+         "destination": "03ae4baabcf7e547ff58bad3813e31bca65499fa11016aa24c80d896a510727597",
+         "payment_hash": "055ac5c154baac2032c4c2474521c2c410eb9326cc5d0c8d4345bc33cddc3b09",
+         "created_at": 1714760131.4795787,
          "parts": 1,
-         "amount_msat": 33333,
-         "amount_sent_msat": 33333,
-         "payment_preimage": "17de2266ce2cce92b1523593b46ffe18b582542f6d3e6135884ff57a89247413",
+         "amount_msat": 3333333,
+         "amount_sent_msat": 3333333,
+         "payment_preimage": "c062d69c2ca7f3e1d57de969f992a20880f4a2d01408597dcc386c412bf14450",
          "status": "complete"
       },
-      "394c41d9-a9a6-4c5d-916f-083105ec35b7": {
-         "destination": "0258dc215bef8eca15ceb424aea162519cbc40d0b9b0eb107339bc7432de51c0e1",
-         "payment_hash": "356a7fcc43ad4c329553cfe925688f6148b933396094e6fcbac0310dd29c04c9",
-         "created_at": 1714147773.9578664,
+      "03d6c054-2593-462d-9f68-4fd81bc0aa28": {
+         "destination": "036c6757c0e30eacd0c8188946b437f5adb5dac5afe1cc5b60b63a56e67be382c0",
+         "payment_hash": "ae92fe81c2c9d1801c0f27793e3227eeba78a3a11b09732adca0ce2600c7dace",
+         "created_at": 1714760132.606286,
          "parts": 1,
-         "amount_msat": 33333,
-         "amount_sent_msat": 33333,
-         "payment_preimage": "146e5eee75d84f5d779ca3e0ab8538dc04940b8026fd5d54a4cb60651139c353",
+         "amount_msat": 3333333,
+         "amount_sent_msat": 3333333,
+         "payment_preimage": "801c67c5c3d006b3ef94a2e40c77b4b9cb61432b1e60cb6754aaaf5e0d05dec2",
          "status": "complete"
       },
-      "02eceb88-b64d-4129-b861-cb5c3d231a46": {
-         "destination": "03d2f22b54e0d8c952015380d1bf6a75239c5359f87b363746a0adadb9fd763e7a",
-         "payment_hash": "e586f808e8381cfc8750ffed8c32dbd0d7c25040caae983cb20b59ee9ebed99b",
-         "created_at": 1714147774.9850466,
+      "091a8fe9-a8bc-48ae-8fba-7ac33ebd961b": {
+         "destination": "02872086d7d910374b7b55c203f37fa7137361dc78c2919ea7d2565779c583ded2",
+         "payment_hash": "97292fcf635405d33775d55e5362ba591a342b747102ab3dd0414164405be3df",
+         "created_at": 1714760133.739254,
          "parts": 1,
-         "amount_msat": 33333,
-         "amount_sent_msat": 33333,
-         "payment_preimage": "fa6071450e296e80d0de9ae5bc1f54e25891b8650955353bda3a45a57320ed5d",
+         "amount_msat": 3333333,
+         "amount_sent_msat": 3333333,
+         "payment_preimage": "99b6fb7097a391e2558afc5b8bee377578c92b2691d18ddebbd79b78afe438aa",
          "status": "complete"
       }
    }
@@ -171,36 +158,37 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
 ```json
 {
    "status": "must-create",
-   "bind_to": "64b2eaba3882444833eda9bab3535d836f1976753613729427c374bcbba04913",
+   "timestamp": 1714760131,
+   "bind_to": "ecbb23dd33aeea4ca3c9198bdf459b004b455f13bbe72554be15a5aab4100ce6",
    "prism_id": "prism1",
    "prism_binding_key": [
       "prism",
       "v2",
       "bind",
       "bolt12",
-      "64b2eaba3882444833eda9bab3535d836f1976753613729427c374bcbba04913"
+      "ecbb23dd33aeea4ca3c9198bdf459b004b455f13bbe72554be15a5aab4100ce6"
    ],
    "prism_members": [
       {
-         "member_id": "0922ff11-15fb-428f-9607-fd3ad9096964",
+         "member_id": "2503e139-760c-48fc-90f0-66e88780ece4",
          "label": "Carol",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdtj0zz3uhtcys42fnkhmvn96spym62l25xa69knd6kp3jncaf3py",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqwhyh24u7lj50l6chtfcz033hjn9fx06zyqk4gjvsrvfdfgswf6ew",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
       },
       {
-         "member_id": "394c41d9-a9a6-4c5d-916f-083105ec35b7",
+         "member_id": "03d6c054-2593-462d-9f68-4fd81bc0aa28",
          "label": "Dave",
-         "destination": "0258dc215bef8eca15ceb424aea162519cbc40d0b9b0eb107339bc7432de51c0e1",
+         "destination": "036c6757c0e30eacd0c8188946b437f5adb5dac5afe1cc5b60b63a56e67be382c0",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
       },
       {
-         "member_id": "02eceb88-b64d-4129-b861-cb5c3d231a46",
+         "member_id": "091a8fe9-a8bc-48ae-8fba-7ac33ebd961b",
          "label": "Erin",
-         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq0f0y265urvvj5sp2wqdr0m2w53ec56elpanvd6x5zk6mw0awcl85",
+         "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq2rjppkhmygrwjmm2hpq8uml5ufhxcwu0rpfr8486ft9w7w9s00dy",
          "split": 1,
          "fees_incurred_by": "remote",
          "payout_threshold": "0msat"
@@ -219,12 +207,13 @@ Want to see all your bindings? Run `prism-bindinglist`. Add an `offer_id` to vie
 {
    "bolt12_prism_bindings": [
       {
-         "offer_id": "64b2eaba3882444833eda9bab3535d836f1976753613729427c374bcbba04913",
+         "offer_id": "ecbb23dd33aeea4ca3c9198bdf459b004b455f13bbe72554be15a5aab4100ce6",
          "prism_id": "prism1",
+         "timestamp": 1714760131,
          "member_outlays": {
-            "0922ff11-15fb-428f-9607-fd3ad9096964": "0msat",
-            "394c41d9-a9a6-4c5d-916f-083105ec35b7": "0msat",
-            "02eceb88-b64d-4129-b861-cb5c3d231a46": "0msat"
+            "2503e139-760c-48fc-90f0-66e88780ece4": "0msat",
+            "03d6c054-2593-462d-9f68-4fd81bc0aa28": "0msat",
+            "091a8fe9-a8bc-48ae-8fba-7ac33ebd961b": "0msat"
          }
       }
    ]
