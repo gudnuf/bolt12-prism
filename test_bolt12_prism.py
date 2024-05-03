@@ -31,3 +31,8 @@ def test_basic_test(node_factory):
     assert l2.rpc.prism_list()
     assert l2.rpc.prism_bindinglist()
     assert l2.rpc.plugin_stop(plugin_path)
+
+
+# tests
+# test a non zero payout_threshold
+# test both local/remote payout_threshold
