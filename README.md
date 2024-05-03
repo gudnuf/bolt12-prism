@@ -164,7 +164,7 @@ Often you will want your prisms to be paid out whenever you have an incoming pay
 
 ### Create a binding
 
-`lightning-cli -k prism-bindingadd -k bind_to=64b2eaba3882444833eda9bab3535d836f1976753613729427c374bcbba04913 prism_id=prism1`
+`lightning-cli -k prism-bindingadd -k offer_id=64b2eaba3882444833eda9bab3535d836f1976753613729427c374bcbba04913 prism_id=prism1`
 
 Binds a prism to either a bolt12 offer such that the prism will be executed upon incoming payment.
 
