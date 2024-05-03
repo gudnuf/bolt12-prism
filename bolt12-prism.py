@@ -284,7 +284,7 @@ def on_payment(plugin, invoice_payment, **kwargs):
 
     # TODO: return PrismBinding.get as class member rather than json
     binding = None
-    binding = PrismBinding.get(plugin, bind_to, bind_type)
+    binding = PrismBinding.get(plugin, bind_to, bolt_version)
 
     if not binding:
         plugin.log("Incoming payment not associated with prism binding. Nothing to do.", "info")
