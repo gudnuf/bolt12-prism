@@ -274,19 +274,24 @@ class Prism:
         results = {}
 
         for m in self.members:
-            member_msat = 0
+            member_msat = Millisatoshi(0)
 
             if binding is None:
                 # when a binding is not provided (when we're using prism.pay, for example)
                 # the member_msat is set to the proportional share of defined in the split defintion
-                member_msat = math.floor(amount_msat * (m.split / self.total_splits))
-                self._plugin.log(f"In Prism.pay, but no binding was provided. Setting member_msat to {member_msat}")
-                #self._plugin.log(f"member_msat {member_msat} ")
+                member_msat = Millisatoshi(math.floor(amount_msat * (m.split / self.total_splits)))
+                self._plugin.log(f"In Prism.pay, but no binding was provided, thus setting member_msat to a {member_msat}.")
+
             else:
                 # but if the user provids a binding object, then we set the member_msat to the
                 # outlay for the respective prism member.
-                member_msat = binding.outlays[m.id]
+                member_msat = Millisatoshi(binding.outlays[m.id])
                 self._plugin.log(f"In Prism.pay, and a binding was provided. Setting member_msat to the member's outlay: {member_msat}")
+
+                # we stop processing if the 
+                if member_msat <= m.payout_threshold:
+                    self._plugin.log("Member outlay is less than the payout threshold. Skipping.")
+                    continue
 
             payment = None
             if bolt12Regex.match(m.destination):
