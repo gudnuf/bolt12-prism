@@ -72,7 +72,9 @@ def listprisms(plugin, prism_id=None):
         if prism is None:
             raise Exception(f"Prism with id {prism_id} not found.")
 
-        return prism.to_dict()
+        return {
+                "prisms": prism.to_dict()
+            }
 
 
 @plugin.method("prism-update")
