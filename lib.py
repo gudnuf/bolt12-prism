@@ -146,9 +146,11 @@ class Prism:
 
         members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
-        timestamp = prism_dict.get("timestamp", 0)
+        timestamp = prism_dict.get("timestamp")
 
-        return Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members)
+        outlay_factor = prism_dict.get("outlay_factor")
+
+        return Prism(plugin, outlay_factor=outlay_factor, timestamp=timestamp, prism_id=prism_id, members=members)
 
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -173,9 +175,9 @@ class Prism:
         return prism_ids
     
     @staticmethod
-    def create(plugin: Plugin, prism_id: str = None, members: List[Member] = None):
+    def create(plugin: Plugin, outlay_factor, prism_id: str = None, members: List[Member] = None):
         timestamp = round(time.time())
-        prism = Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members)
+        prism = Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members, outlay_factor=outlay_factor)
         prism.save()
         return prism
 
@@ -199,15 +201,16 @@ class Prism:
 
         our_bindings = [b for b in all_bindings if b.prism.id == self.id]
 
-        self._plugin.log(f'This prism\'s bindings: {our_bindings}')
+        self._plugin.log(f"This prism's bindings: {our_bindings}")
 
         return our_bindings
 
-    def __init__(self, plugin: Plugin, timestamp: str, prism_id: str = None, members: List[Member] = None):
+    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, prism_id: str = None, members: List[Member] = None):
         self.validate(members)
         self.members = members
         self.id = prism_id if prism_id else str(uuid.uuid4())
         self.timestamp = timestamp
+        self.outlay_factor = outlay_factor
         self._plugin = plugin
 
     def to_json(self, member_ids_only=False):
@@ -219,6 +222,7 @@ class Prism:
         return json.dumps({
             "prism_id": self.id,
             "timestamp": self.timestamp,
+            "outlay_factor": self.outlay_factor,
             "prism_members": members
         })
 
@@ -226,6 +230,7 @@ class Prism:
         return {
             "prism_id": self.id,
             "timestamp": self.timestamp,
+            "outlay_factor": self.outlay_factor,
             "prism_members": [member.to_dict() for member in self.members]
         }
 
@@ -374,7 +379,6 @@ class PrismBinding:
     @staticmethod
     def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
 
-
         types = ["bolt11", "bolt12"]
         if bolt_version not in types:
             raise Exception(
@@ -515,6 +519,7 @@ class PrismBinding:
             key=self._datastore_key, string=string, mode="must-replace")
 
     def increment_outlays(self, amount_msat):
+
         self._plugin.log(f"Incrementing outlays for binding '{self.offer_id}' with total income of {amount_msat}msats.")
         new_outlays = {}
         for member_id, outlay in self.outlays.items():
@@ -568,7 +573,10 @@ class PrismBinding:
     def pay(self, amount_msat):
 
         payment_results = None
-        self.increment_outlays(amount_msat=amount_msat)
+        self._plugin.log(f"Calculating total outlays...")
+        total_outlays = amount_msat * self.prism.outlay_factor
+        self._plugin.log(f"Total outlays are {total_outlays} after applying an outlay factor of {self.prism.outlay_factor} to the income amount {amount_msat}.")
+        self.increment_outlays(amount_msat=total_outlays)
 
         # TODO we need to narrow the gap between these two functions.
         payment_results = self.prism.pay(amount_msat, binding=self)

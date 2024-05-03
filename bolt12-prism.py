@@ -34,13 +34,15 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, prism_id=""):
+def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0):
     '''Create a prism.'''
+
+    plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor}", "info")
 
     prism_members = [Member(plugin=plugin, member_dict=m) for m in members]
 
     # create a new prism object (this is used for our return object only)
-    prism = Prism.create(plugin, prism_id, prism_members)
+    prism = Prism.create(plugin=plugin, prism_id=prism_id, members=prism_members, outlay_factor=outlay_factor)
 
     # return the prism json
     return prism.to_dict()
