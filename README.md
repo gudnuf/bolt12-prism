@@ -74,7 +74,7 @@ Run the following command to view a prism policy. (Note that you can omit the `p
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqvdt6lccaa4fw3dgw4dczt8ae8v69999j0uyrrsfhepg7tqwg2k4z",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       },
       {
          "member_id": "9a64efaa-3ac8-4b2d-af4b-36ab1846acdd",
@@ -82,7 +82,7 @@ Run the following command to view a prism policy. (Note that you can omit the `p
          "destination": "03e5700104d1b6e2602a2dfda5b497d9c6862597865d46e3ded8404bf4067250e2",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       },
       {
          "member_id": "4faf43bc-5595-4239-90d1-576cbe1caf91",
@@ -90,7 +90,7 @@ Run the following command to view a prism policy. (Note that you can omit the `p
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqdeza5wk7pdd674uv2nzcgprvlwxjtjxman4ezl6j3ghh0wq65u7v",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       }
    ]
 }
@@ -173,7 +173,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pqwhyh24u7lj50l6chtfcz033hjn9fx06zyqk4gjvsrvfdfgswf6ew",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       },
       {
          "member_id": "03d6c054-2593-462d-9f68-4fd81bc0aa28",
@@ -181,7 +181,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
          "destination": "036c6757c0e30eacd0c8188946b437f5adb5dac5afe1cc5b60b63a56e67be382c0",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       },
       {
          "member_id": "091a8fe9-a8bc-48ae-8fba-7ac33ebd961b",
@@ -189,7 +189,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
          "destination": "lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrc2qajx2enpw4k8g93pq2rjppkhmygrwjmm2hpq8uml5ufhxcwu0rpfr8486ft9w7w9s00dy",
          "split": 1,
          "fees_incurred_by": "remote",
-         "payout_threshold": "0msat"
+         "payout_threshold_msat": "0"
       }
    ]
 }
@@ -220,7 +220,7 @@ Want to see all your bindings? Run `prism-bindinglist`. Add an `offer_id` to vie
 
 Notice that outlay property? That's how the prism plugin deals with failed payments AND Lightning Network fees. When a prism binding has an incoming payment, prism member outlays in the binding are increased according the prism policy and incoming amount.
 
-When `fees_incurred_by=remote` and a payment to a prism member succeeds, the outlay is decremented by the total amount of the payment including fees paid. When `fees_incurred_by=local`, fees are paid by the node operator hosting the prism. Prism member payouts occur when outlays exceed the `payout_threshold` in the respective prism policy. Until then, outlays accumulate and eventually get paid-out. 
+When `fees_incurred_by=remote` and a payment to a prism member succeeds, the outlay is decremented by the total amount of the payment including fees paid. When `fees_incurred_by=local`, fees are paid by the node operator hosting the prism. Prism member payouts occur when outlays exceed the `payout_threshold_msat` in the respective prism policy. Until then, outlays accumulate and eventually get paid-out. 
 
 If a payment to a prism member fails for whatever reason, the outlay remains unchanged.
 
