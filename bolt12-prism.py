@@ -34,7 +34,7 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0):
+def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to_self_enabled: bool = True):
     '''Create a prism.'''
 
     plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor}", "info")
@@ -43,6 +43,14 @@ def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0):
 
     # create a new prism object (this is used for our return object only)
     prism = Prism.create(plugin=plugin, prism_id=prism_id, members=prism_members, outlay_factor=outlay_factor)
+
+    # now we want to create a unique offer that is associated with this prism
+    # this offer facilitates pay-to-self-destination use case.
+    if pay_to_self_enabled == True:
+        create_offer_response = plugin.rpc.offer(amount="any", description=prism_id, label="internal:prism")
+        ptsd_offer_id = create_offer_response["offer_id"]
+        plugin.log(f"In prism-create. Trying to create a PTSD offer binding. here's the ptsd_offer_bolt12 {ptsd_offer_id}")
+        bind_prism_response = bindprism(plugin=plugin, prism_id=prism_id, offer_id=ptsd_offer_id)
 
     # return the prism json
     return prism.to_dict()
@@ -154,6 +162,8 @@ def list_bindings(plugin, offer_id=None, invoice_label=""):
 @plugin.method("prism-bindingadd")
 def bindprism(plugin: Plugin, prism_id, offer_id=None, invoice_label=""):
     '''Binds a prism to a BOLT12 Offer or a BOLT11 invoice.'''
+
+    plugin.log(f"In bindprism with prism_id={prism_id} and offer_id={offer_id}.", "info")
 
     trigger = None
 
