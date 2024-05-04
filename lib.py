@@ -7,6 +7,7 @@ try:
     import json
     import math
     import time
+    import hashlib
 except ModuleNotFoundError as err:
     # OK, something is not installed?
     import json
@@ -494,11 +495,22 @@ class PrismBinding:
                                "bind", bolt_version, offer_id]
 
     def to_dict(self):
+        sha256 = hashlib.sha256()
+        sha256.update(self.offer_id.encode('utf-8'))
+        binding_id = sha256.hexdigest()
+
         return {
+            "binding_id": binding_id,
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
             "timestamp": self.timestamp,
-            "member_outlays": self.outlays
+            "member_outlays":  [
+                {
+                    "member_id": member_id, 
+                    "outlay_msat": outlay.replace('msat','')
+                } 
+                for member_id, outlay in self.outlays.items() 
+                    ]
         }
 
     def to_json(self):
