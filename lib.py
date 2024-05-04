@@ -56,7 +56,7 @@ class Member:
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
 
         # TODO
-        member['payout_threshold'] = member.get('payout_threshold', 0)
+        member['payout_threshold_msat'] = member.get('payout_threshold_msat', 0)
 
         # TODO also check to see if the user provided MORE fields than is allowed.
 
@@ -96,8 +96,8 @@ class Member:
         self.split: str = member_dict.get("split")
         self.fees_incurred_by: str = member_dict.get(
             "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-        self.payout_threshold: Millisatoshi = Millisatoshi(member_dict.get(
-            "payout_threshold")) if member_dict.get("payout_threshold") else Millisatoshi(0)
+        self.payout_threshold_msat: Millisatoshi = Millisatoshi(member_dict.get(
+            "payout_threshold_msat") + "msat") if member_dict.get("payout_threshold_msat") else Millisatoshi(0)
 
         self._plugin = plugin
 
@@ -120,7 +120,7 @@ class Member:
             "split": self.split,
             # TODO: shold this be at the prism level instead?
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold": self.payout_threshold
+            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
         })
 
     def to_dict(self):
@@ -130,7 +130,7 @@ class Member:
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold": self.payout_threshold
+            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
         }
 
 class Prism:
@@ -294,7 +294,7 @@ class Prism:
                 self._plugin.log(f"In Prism.pay, and a binding was provided. Setting member_msat to the member's outlay: {member_msat}")
 
                 # we stop processing if the 
-                if member_msat <= m.payout_threshold:
+                if member_msat <= m.payout_threshold_msat:
                     self._plugin.log("Member outlay is less than the payout threshold. Skipping.")
                     continue
 
@@ -559,7 +559,7 @@ class PrismBinding:
             
                 payment_amount = payment_result.get("amount_sent_msat", 0)
             else:
-                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment.", "warn")
+                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment. Outlays will remain unchained.", "warn")
 
             new_outlay = Millisatoshi(outlay) - Millisatoshi(payment_amount)
 
