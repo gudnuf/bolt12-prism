@@ -50,7 +50,7 @@ def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to
         create_offer_response = plugin.rpc.offer(amount="any", description=prism_id, label="internal:prism")
         ptsd_offer_id = create_offer_response["offer_id"]
         plugin.log(f"In prism-create. Trying to create a PTSD offer binding. here's the ptsd_offer_bolt12 {ptsd_offer_id}")
-        bind_prism_response = bindprism(plugin=plugin, prism_id=prism_id, offer_id=ptsd_offer_id)
+        bind_prism_response = bindprism(plugin=plugin, prism_id=prism.id, offer_id=ptsd_offer_id)
 
     # return the prism json
     return prism.to_dict()
