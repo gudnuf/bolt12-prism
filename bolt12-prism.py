@@ -59,32 +59,17 @@ def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to
 def listprisms(plugin, prism_id=None):
     '''List prisms.'''
 
-    # if a prism_id is not supplied, we return all prism policy objects (like in listoffers)
-    if prism_id == None:
-        try:
-            prism_ids = Prism.find_all(plugin)
-            prisms = []
-            for prism_id in prism_ids:
-                prism = Prism.get(plugin=plugin, prism_id=prism_id)
-                prisms.append(prism)
-
-            return {
-                "prisms": [prism.to_dict() for prism in prisms]
-            }
-
-        except RpcError as e:
-            plugin.log(e)
-            return e
-    else:
-        # otherwise we return a single document.
-        prism = Prism.get(plugin=plugin, prism_id=prism_id)
-
-        if prism is None:
-            raise Exception(f"Prism with id {prism_id} not found.")
-
-        return {
-                "prisms": prism.to_dict()
-            }
+    prisms = Prism.get(plugin=plugin, prism_id=prism_id)
+    
+    if prisms is None:
+        raise Exception(f"Prism with id {prism_id} not found.")
+    
+    if type(prisms) is not list:
+        prisms = [prisms]
+    
+    return {
+        "prisms": [prism.to_dict() for prism in prisms]
+    }
 
 
 @plugin.method("prism-update")

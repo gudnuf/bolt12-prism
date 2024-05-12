@@ -154,26 +154,27 @@ class Prism:
         return Prism(plugin, outlay_factor=outlay_factor, timestamp=timestamp, prism_id=prism_id, members=members)
 
     @staticmethod
-    def get(plugin: Plugin, prism_id: str):
-        prism_record = plugin.rpc.listdatastore(
-            key=Prism.datastore_key(id=prism_id))["datastore"]
-
-        if not prism_record:
-            return None
-
-        return Prism.from_db_string(plugin, prism_record[0]["string"])
-
-    @staticmethod
-    def find_all(plugin: Plugin):
-        key = ["prism", prism_db_version, "prism"]
+    def get(plugin: Plugin, prism_id: str = None):
+        """
+        Get a `Prism` object for a given `prism_id`, or all `Prism` objects in the db if no `prism_id` is provided.
+        """
+        if not prism_id:
+            # look up all prisms
+            key = ["prism", prism_db_version, "prism"]
+        else:
+            # look up prism by id
+            key = Prism.datastore_key(id=prism_id)
+        
         prism_records = plugin.rpc.listdatastore(key=key).get("datastore", [])
 
-        prism_ids = []
-        for prism in prism_records:
-            prism_id = prism["key"][3]
-            prism_ids.append(prism_id)
+        if not prism_records:
+            return None
+        
+        if prism_id:
+            return Prism.from_db_string(plugin, prism_records[0]["string"])
+        else:
+            return [Prism.from_db_string(plugin, prism_record["string"]) for prism_record in prism_records]
 
-        return prism_ids
     
     @staticmethod
     def create(plugin: Plugin, outlay_factor, prism_id: str = None, members: List[Member] = None):
@@ -419,6 +420,9 @@ class PrismBinding:
             dbmode = "must-replace"
 
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
+
+        plugin.log(f"prism: {prism}")
+
         if not prism:
             raise Exception(f"Could not find prism: {prism_id}")
         members = prism.members
