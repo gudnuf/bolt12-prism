@@ -97,12 +97,10 @@ def test_general_prism(node_factory, bitcoind):
     l2.rpc.call(
         "prism-create", {"members": members_json, "prism_id": prism1_id}
     )
-    assert prism1_id in l2.rpc.call("prism-list")["prism_ids"]
-    # prism-show in README but not in code
-    # assert (
-    #     len(l2.rpc.call("prism-show", {"prism_id": prism1_id})["prism_members"])
-    #     == 3
-    # )
+
+    prism_ids = [prism["prism_id"] for prism in l2.rpc.call("prism-list")["prisms"]]
+    assert prism1_id in prism_ids
+
     l2.rpc.call("prism-pay", {"prism_id": prism1_id, "amount_msat": 1_000_000})
     wait_for(
         lambda: l3.rpc.listpeerchannels()["channels"][0]["to_us_msat"] > 300_000
@@ -117,7 +115,7 @@ def test_general_prism(node_factory, bitcoind):
     l2_offer = l2.rpc.offer("any", "Prism")
     l2.rpc.call(
         "prism-bindingadd",
-        {"bind_to": l2_offer["offer_id"], "prism_id": prism1_id},
+        {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
     )
     binding = l2.rpc.call("prism-bindinglist")["bolt12_prism_bindings"][0]
     assert binding["offer_id"] == l2_offer["offer_id"]
@@ -139,7 +137,7 @@ def test_general_prism(node_factory, bitcoind):
     assert len(l2.rpc.call("prism-bindinglist")["bolt12_prism_bindings"]) == 0
 
     l2.rpc.call("prism-delete", {"prism_id": prism1_id})
-    assert prism1_id not in l2.rpc.call("prism-list")["prism_ids"]
+    assert prism1_id not in [prism["prism_id"] for prism in l2.rpc.call("prism-list")["prisms"]] 
 
 
 def test_splits(node_factory, bitcoind):
@@ -260,7 +258,7 @@ def test_payment_threshold(node_factory, bitcoind):
             "label": "Lead-Singer",
             "destination": l3_offer["bolt12"],
             "split": 1,
-            "payout_threshold": 500_000,
+            "payout_threshold_msat": "500000",
         },
         {
             "label": "Drummer",
@@ -282,7 +280,7 @@ def test_payment_threshold(node_factory, bitcoind):
     l2_offer = l2.rpc.offer("any", "Prism")
     l2.rpc.call(
         "prism-bindingadd",
-        {"bind_to": l2_offer["offer_id"], "prism_id": prism1_id},
+        {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
     )
 
     invoice = l1.rpc.fetchinvoice(l2_offer["bolt12"], 1_000_000)
