@@ -47,7 +47,7 @@ def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to
     # now we want to create a unique offer that is associated with this prism
     # this offer facilitates pay-to-self-destination use case.
     if pay_to_self_enabled == True:
-        create_offer_response = plugin.rpc.offer(amount="any", description=prism_id, label="internal:prism")
+        create_offer_response = plugin.rpc.offer(amount="any", description=prism_id, label=f"internal:prism:{prism_id}")
         ptsd_offer_id = create_offer_response["offer_id"]
         plugin.log(f"In prism-create. Trying to create a PTSD offer binding. here's the ptsd_offer_bolt12 {ptsd_offer_id}")
         bind_prism_response = bindprism(plugin=plugin, prism_id=prism.id, offer_id=ptsd_offer_id)
@@ -138,7 +138,6 @@ def list_bindings(plugin, offer_id=None, invoice_label=""):
             f"bolt11_prism_bindings": binding.to_dict()
         }
 
-
     return prism_response
 
 
@@ -156,7 +155,7 @@ def bindprism(plugin: Plugin, prism_id, offer_id=None, invoice_label=""):
     bind_to = None
     if  offer_id == None and invoice_label != "":
         bolt_version = "bolt11"
-        bind_to =invoice_label
+        bind_to = invoice_label
     elif offer_id != None:
         bolt_version = "bolt12"
         bind_to = offer_id
