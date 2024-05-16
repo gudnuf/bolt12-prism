@@ -34,7 +34,7 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to_self_enabled: bool = True):
+def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
     '''Create a prism.'''
 
     plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor}", "info")
