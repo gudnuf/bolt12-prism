@@ -59,14 +59,23 @@ def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to
 def listprisms(plugin, prism_id=None):
     '''List prisms.'''
 
-    prisms = Prism.get(plugin=plugin, prism_id=prism_id)
-    
-    if prisms is None:
-        raise Exception(f"Prism with id {prism_id} not found.")
-    
+    prisms = None
+
+    try:
+        prisms = Prism.get(plugin=plugin, prism_id=prism_id)
+    except RpcError as e:
+        plugin.log(e)
+        return e
+
     if type(prisms) is not list:
-        prisms = [prisms]
-    
+        if prism_id is not None:
+            raise Exception(f"Prism with id {prism_id} not found.")
+
+        return {
+            "prisms": []
+        }
+
+    # otherwise, enumerate the prism(s)
     return {
         "prisms": [prism.to_dict() for prism in prisms]
     }
