@@ -443,7 +443,7 @@ class PrismBinding:
         response = {
             "status": dbmode,
             "timestamp": timestamp,
-            "bind_to": bind_to,
+            "offer_id": bind_to,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
             "prism_members": [member.to_dict() for member in members]

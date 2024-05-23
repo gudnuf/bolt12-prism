@@ -198,7 +198,7 @@ Binds a prism to either a bolt12 offer such that the prism will be executed upon
 {
    "status": "must-create",
    "timestamp": 1715879765,
-   "bind_to": "2a5afc3132b75e6c30a3ad932507f83c27c57fa96e56a6ff856b67db9e12d9a9",
+   "offer_id": "2a5afc3132b75e6c30a3ad932507f83c27c57fa96e56a6ff856b67db9e12d9a9",
    "prism_id": "prism3",
    "prism_binding_key": [
       "prism",
