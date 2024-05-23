@@ -572,7 +572,7 @@ class PrismBinding:
             
                 payment_amount = payment_result.get("amount_sent_msat", 0)
             else:
-                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment. Outlays will remain unchained.", "warn")
+                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment. Outlays will remain unchanged.", "warn")
 
             new_outlay = Millisatoshi(outlay) - Millisatoshi(payment_amount)
 
