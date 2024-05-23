@@ -500,10 +500,8 @@ class PrismBinding:
     def to_dict(self):
         sha256 = hashlib.sha256()
         sha256.update(self.offer_id.encode('utf-8'))
-        binding_id = sha256.hexdigest()
 
         return {
-            "binding_id": binding_id,
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
             "timestamp": self.timestamp,

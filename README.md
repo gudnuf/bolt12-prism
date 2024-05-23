@@ -245,7 +245,6 @@ Want to see your bindings? Run `prism-bindinglist`. Add an `offer_id` to view a 
 ```json
 {
    "bolt12_prism_bindings": {
-      "binding_id": "09793f96dc7e633423765f1ecd5f4e4acba10d193a56918a92f482eeef104cd7",
       "offer_id": "2a5afc3132b75e6c30a3ad932507f83c27c57fa96e56a6ff856b67db9e12d9a9",
       "prism_id": "prism3",
       "timestamp": 1715879765,
