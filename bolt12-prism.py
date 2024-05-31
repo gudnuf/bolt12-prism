@@ -82,7 +82,7 @@ def listprisms(plugin, prism_id=None):
             raise Exception(f"Prism with id {prism_id} not found.")
 
         return {
-                "prisms": prism.to_dict()
+                "prisms": [prism.to_dict()]
             }
 
 
