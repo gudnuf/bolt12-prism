@@ -197,6 +197,35 @@ def bindprism(plugin: Plugin, prism_id, offer_id=None, invoice_label=""):
 
     return add_binding_result
 
+
+
+# adds a binding to the database.
+@plugin.method("prism-bindingmemberoutlayreset")
+def set_binding_member_outlay(plugin: Plugin, offer_id=None, member_id=None, new_outlay_msat=0):
+    '''Change the member outlay value for a specific prism-binding-member.'''
+
+    # Ensure new_outlay_msat is converted to an integer
+    try:
+        new_outlay_msat = int(new_outlay_msat)
+    except ValueError:
+        raise ValueError("new_outlay_msat must be convertible to an integer")
+
+    # then we're going to return a single binding.
+    binding = PrismBinding.get(plugin, offer_id)
+
+    if not binding:
+        raise Exception("ERROR: could not find a binding for this offer.")
+
+    plugin.log(f"Updating outlay for Prism Binding offer_id={offer_id}, member_id={member_id}, new outlay: '{new_outlay_msat}msat'", "info")
+
+    PrismBinding.set_member_outlay(binding, member_id, new_outlay_msat)
+
+    prism_response = {
+        f"bolt12_prism_bindings": binding.to_dict()
+    }
+
+    return prism_response
+
 @plugin.method("prism-bindingremove")
 def remove_prism_binding(plugin, offer_id=None, invoice_label=""):
     '''Removes a prism binding.'''

@@ -397,6 +397,15 @@ class PrismBinding:
 
         return PrismBinding.from_db_string(plugin, string=binding_records[0].get('string'), bind_to=bind_to, bolt_version=bolt_version)
 
+    @staticmethod
+    def set_member_outlay(binding: None, member_id: str, new_outlay_value=0):
+
+        binding.outlays[member_id] = int(new_outlay_value)
+
+        # TODO this saves the entire prism bindings; we probably need something more
+        # precise that saves only the binding-member. But this works for now
+        binding.save()
+
     # is is the revers of the method above. It return all prism-bindings,
     # but keyed on offer_id, as stored in the database.
 
@@ -433,7 +442,7 @@ class PrismBinding:
         binding_value = {
             "prism_id": prism_id,
             "timestamp": timestamp,
-            "member_outlays": {member.id: "0msat" for member in members}
+            "member_outlays": {member.id: 0 for member in members}
         }
 
         # save the record
