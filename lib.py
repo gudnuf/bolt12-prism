@@ -1,6 +1,6 @@
 try:
     from typing import List
-    from pyln.client import Plugin, Millisatoshi, RpcError
+    from pyln.client import Plugin, RpcError
     import re
     import os
     import uuid
@@ -97,8 +97,8 @@ class Member:
         self.split: str = member_dict.get("split")
         self.fees_incurred_by: str = member_dict.get(
             "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-        self.payout_threshold_msat: Millisatoshi = Millisatoshi(member_dict.get(
-            "payout_threshold_msat") + "msat") if member_dict.get("payout_threshold_msat") else Millisatoshi(0)
+        self.payout_threshold_msat: int = int(member_dict.get(
+            "payout_threshold_msat")) if member_dict.get("payout_threshold_msat") else int(0)
 
         self._plugin = plugin
 
@@ -121,7 +121,7 @@ class Member:
             "split": self.split,
             # TODO: shold this be at the prism level instead?
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
+            "payout_threshold_msat": self.payout_threshold_msat
         })
 
     def to_dict(self):
@@ -131,7 +131,7 @@ class Member:
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
+            "payout_threshold_msat": self.payout_threshold_msat
         }
 
 class Prism:
@@ -280,18 +280,18 @@ class Prism:
         results = {}
 
         for m in self.members:
-            member_msat = Millisatoshi(0)
+            member_msat = 0
 
             if binding is None:
                 # when a binding is not provided (when we're using prism.pay, for example)
                 # the member_msat is set to the proportional share of defined in the split defintion
-                member_msat = Millisatoshi(math.floor(amount_msat * (m.split / self.total_splits)))
+                member_msat = int(math.floor(amount_msat * (m.split / self.total_splits)))
                 self._plugin.log(f"In Prism.pay, but no binding was provided, thus setting member_msat to a {member_msat}.")
 
             else:
                 # but if the user provids a binding object, then we set the member_msat to the
                 # outlay for the respective prism member.
-                member_msat = Millisatoshi(binding.outlays[m.id])
+                member_msat = int(binding.outlays[m.id])
                 self._plugin.log(f"In Prism.pay, and a binding was provided. Setting member_msat to the member's outlay: {member_msat}")
 
                 # we stop processing if the 
@@ -325,8 +325,40 @@ class Prism:
 
             if payment is not None:
                 results[m.id] = payment
-            else:
-                results[m.id] = None
+
+                # if there's a binding, we update the outlay.
+                if binding is not None:
+
+                    status = payment["status"]
+                    if status != "complete":
+                        self._plugin.log(f"Failed to pay member {member_id}")
+                        continue
+
+                    # update the member outlay with the payment amount (respecting fee accounting)
+                    total_amount_sent = payment["amount_sent_msat"]
+                    total_amount_sent_minus_fees = payment["amount_msat"]
+
+                    self._plugin.log(f"total_amount_sent: {total_amount_sent}", 'debug')
+                    self._plugin.log(f"total_amount_sent_minus_fees: {total_amount_sent_minus_fees}", 'debug')
+
+                    new_outlay = None
+                    if m.fees_incurred_by == "remote":
+                        new_outlay = member_msat - total_amount_sent
+                        self._plugin.log(f"fees_incurred_by is set to remote. New outlay: {member_msat}-{total_amount_sent}={new_outlay}")
+                    elif m.fees_incurred_by == "local":
+                        new_outlay = member_msat - total_amount_sent_minus_fees
+                        self._plugin.log(f"fees_incurred_by is set to local. New outlay is {new_outlay}")
+                    else:
+                        raise Exception("If this happens then we have some input validation issues.")
+
+                    # now that we have the new outlay value, we need to persist it to the db
+                    self._plugin.log(f"new_outlay: {new_outlay}", "debug")
+
+                    binding.outlays[m.id] = new_outlay
+
+                    # TODO this saves the entire prism bindings; we probably need something more
+                    # precise that saves only the binding-member. But this works for now
+                    binding.save()
 
         self._plugin.log(
             f"PRISM-PAY: ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'debug')
@@ -514,13 +546,13 @@ class PrismBinding:
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
             "timestamp": self.timestamp,
-            "member_outlays":  [
+            "member_outlays": [
                 {
                     "member_id": member_id, 
-                    "outlay_msat": outlay.replace('msat','')
+                    "outlay_msat": outlay
                 } 
                 for member_id, outlay in self.outlays.items() 
-                    ]
+            ]
         }
 
     def to_json(self):
@@ -555,7 +587,7 @@ class PrismBinding:
             member_msat = math.floor(
                 amount_msat * (m.split / self.prism.total_splits))
 
-            new_amount = Millisatoshi(outlay) + Millisatoshi(member_msat)
+            new_amount = int(outlay) + int(member_msat)
 
             self._plugin.log(
                 f"Updating member {member_id} outlay to {new_amount}")
@@ -566,44 +598,14 @@ class PrismBinding:
 
         self.save()
 
-    def update_outlays(self, payment_results):
-        new_outlays = {}
-        for member_id, outlay in self.outlays.items():
-            payment_amount = 0
-            payment_result = payment_results.get(member_id, None)
-
-            if payment_result:
-                status = payment_result["status"]
-                if status != "complete":
-                    self._plugin.log(f"Failed to pay member {member_id}")
-                    new_outlays[member_id] = outlay
-                    continue
-            
-                payment_amount = payment_result.get("amount_sent_msat", 0)
-            else:
-                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment. Outlays will remain unchanged.", "warn")
-
-            new_outlay = Millisatoshi(outlay) - Millisatoshi(payment_amount)
-
-            new_outlays[member_id] = new_outlay
-
-        self._plugin.log(f"New outlay values after decrementing: {new_outlays}")
-        self.outlays = new_outlays
-
-        self.save()
-
     def pay(self, amount_msat):
 
         payment_results = None
         self._plugin.log(f"Calculating total outlays...")
         total_outlays = amount_msat * self.prism.outlay_factor
-        self._plugin.log(f"Total outlays are {total_outlays} after applying an outlay factor of {self.prism.outlay_factor} to the income amount {amount_msat}.")
+        self._plugin.log(f"Total outlays will be {total_outlays} after applying an outlay factor of {self.prism.outlay_factor} to the income amount {amount_msat}.")
         self.increment_outlays(amount_msat=total_outlays)
-
-        # TODO we need to narrow the gap between these two functions.
         payment_results = self.prism.pay(amount_msat, binding=self)
-        self.update_outlays(payment_results)
-
         self._plugin.log(f"PAYMENT RESULTS: {payment_results}", 'debug')
 
         return True
