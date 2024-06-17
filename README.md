@@ -276,6 +276,14 @@ When `fees_incurred_by=remote` and a payment to a prism member succeeds, the out
 
 If a payment to a prism member fails for whatever reason, the outlay remains unchanged.
 
+### Set a Binding Member Outlay
+
+Say you have outstanding outlays that aren't clearing for whatever reason (e.g., unreachable node in offer). If you know the individual, you can always remit the sats with another wallet. In those cases, you will want to first zeroize the outlays for that member in the binding:
+
+`lightning-cli prism-bindingmemberoutlayreset -k offer_id=404b719986d3f1f86cb25248e98ae2e5657bf17fe50c90afbbafcb29223c6464 member_id=81be6243-cb59-4567-b61b-c234cef23edf new_outlay_msat=0`
+
+Note that since we're tracking outlays, if they actually owe us money, we can set the outlay value to a negative number. As income events flow in, the outlay will eventually turn positive again, accounting for what they owe us.
+
 ### Remove a binding
 
 You can remove a binding by running `prism-bindingremove offer_id`.
