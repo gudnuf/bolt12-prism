@@ -8,6 +8,10 @@ A CLN plugin for creating and interacting with prisms based on [BOLT12](https://
 
 > _BOLT12 is currently experimental and you will need to add the **--experimental-offers** flag when starting lightningd_
 
+## WARNING
+
+> This software should be considered for Testing and Evaluation purposes only!
+
 ## Background
 
 This started as the winning hackathon project at [bitcoin++](https://btcpp.dev/) 2023 in Austin, Tx.
