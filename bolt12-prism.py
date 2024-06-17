@@ -292,8 +292,10 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 
     if prism is None:
         raise Exception("ERROR: could not find prism.")
-
-    pay_results = prism.pay(amount_msat=amount_msat)
+    
+    total_outlays = amount_msat * prism.outlay_factor
+    plugin.log(f"Total outlays will be {total_outlays} after applying an outlay factor of {prism.outlay_factor} to the income amount {amount_msat}.")
+    pay_results = prism.pay(amount_msat=total_outlays)
 
     return {
             "prism_member_payouts": pay_results
