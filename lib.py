@@ -312,17 +312,28 @@ class Prism:
                         self._plugin.log(f"bolt12_payment:  {payment}")
                     else:
                         self._plugin.log(f"Could not fetch an invoice from the remote peer.", "warn")
-
                 except RpcError as e:
                     self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+                except Exception as e:
+                    self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+
             elif pubkeyRegex.match(m.destination):
                 try:
                     self._plugin.log(f"Attempting keysend payment for {member_msat}msats to node with pubkey {m.destination}", 'debug')
                     payment = self._plugin.rpc.keysend(destination=m.destination, amount_msat=member_msat)
                     self._plugin.log(f"keysend_payment:  {payment}")
                 except RpcError as e:
+                    self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+                except Exception as e:
                     self._plugin.log(f"Prism member keysend payment did not complete:  {e}", 'warn')
+                    continue
+            else:
+                raise Exception("ERROR: The destination was an invalid format. This should never happen!")
 
+            results[m.id] = None
             if payment is not None:
                 results[m.id] = payment
 
