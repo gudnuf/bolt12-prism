@@ -46,14 +46,9 @@ class Member:
             raise Exception(
                 "Destination must be a valid lightning node pubkey or bolt12 offer.")
 
-        if not isinstance(member["split"], int):
-            raise ValueError("Member 'split' must be an integer")
+        if not isinstance(member["split"], float):
+            raise ValueError("Member 'split' must be an float (e.g., 2.0)")
 
-        if member["split"] < 1 or member["split"] > 1000:
-            raise ValueError(
-                "Member 'split' must be an integer between 1 and 1000")
-
-        # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
         member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
 
         # TODO
@@ -91,7 +86,9 @@ class Member:
         self.validate(member_dict)
         self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
-        self.split: str = member_dict.get("split")
+        self.split: float = member_dict.get("split")
+        if self.split <= 0:
+            raise Exception("The split MUST be a positive number (e.g., 2.0)")
         self.fees_incurred_by: str = member_dict.get(
             "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
         self.payout_threshold_msat: int = int(member_dict.get(
