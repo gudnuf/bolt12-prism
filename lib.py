@@ -36,8 +36,8 @@ class Member:
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
 
-        if not isinstance(member["label"], str):
-            raise ValueError("Member 'label' must be a string.")
+        if not isinstance(member["description"], str):
+            raise ValueError("Member 'description' must be a string.")
 
         if not isinstance(member["destination"], str):
             raise ValueError("Member 'destination' must be a string")
@@ -89,10 +89,7 @@ class Member:
 
     def __init__(self, plugin: Plugin, member_dict=None):
         self.validate(member_dict)
-
-        self.id = member_dict.get("member_id") if member_dict.get(
-            "member_id") else str(uuid.uuid4())
-        self.label: str = member_dict.get("label")
+        self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
         self.split: str = member_dict.get("split")
         self.fees_incurred_by: str = member_dict.get(
@@ -116,7 +113,7 @@ class Member:
     def to_json(self):
         return json.dumps({
             "member_id": self.id,
-            "label": self.label,
+            "description": self.description,
             "destination": self.destination,
             "split": self.split,
             # TODO: shold this be at the prism level instead?
@@ -127,7 +124,7 @@ class Member:
     def to_dict(self):
         return {
             "member_id": self.id,
-            "label": self.label,
+            "description": self.description,
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
@@ -145,13 +142,15 @@ class Prism:
 
         prism_id = prism_dict.get("prism_id")
 
+        description = prism_dict.get("description")
+
         members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
         timestamp = prism_dict.get("timestamp")
 
         outlay_factor = prism_dict.get("outlay_factor")
 
-        return Prism(plugin, outlay_factor=outlay_factor, timestamp=timestamp, prism_id=prism_id, members=members)
+        return Prism(plugin, outlay_factor=outlay_factor, description=description, timestamp=timestamp, members=members)
     
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -176,9 +175,9 @@ class Prism:
         return prism_ids
     
     @staticmethod
-    def create(plugin: Plugin, outlay_factor, prism_id: str = None, members: List[Member] = None):
+    def create(plugin: Plugin, outlay_factor, description: str = None, members: List[Member] = None):
         timestamp = round(time.time())
-        prism = Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members, outlay_factor=outlay_factor)
+        prism = Prism(plugin, timestamp=timestamp, description=description, members=members, outlay_factor=outlay_factor)
         prism.save()
         return prism
 
@@ -206,10 +205,11 @@ class Prism:
 
         return our_bindings
 
-    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, prism_id: str = None, members: List[Member] = None):
+    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, description: str = "", members: List[Member] = None):
+
         self.validate(members)
         self.members = members
-        self.id = prism_id if prism_id else str(uuid.uuid4())
+        self.description = description
         self.timestamp = timestamp
         self.outlay_factor = outlay_factor
         self._plugin = plugin
@@ -222,6 +222,7 @@ class Prism:
             members = [member.to_dict() for member in self.members]
         return json.dumps({
             "prism_id": self.id,
+            "description": self.description,
             "timestamp": self.timestamp,
             "outlay_factor": self.outlay_factor,
             "prism_members": members
@@ -230,6 +231,7 @@ class Prism:
     def to_dict(self):
         return {
             "prism_id": self.id,
+            "description": self.description,
             "timestamp": self.timestamp,
             "outlay_factor": self.outlay_factor,
             "prism_members": [member.to_dict() for member in self.members]

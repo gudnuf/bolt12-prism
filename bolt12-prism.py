@@ -34,15 +34,21 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
+def createprism(plugin, members, description: str = "", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
     '''Create a prism.'''
 
-    plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor}", "info")
+    if description == "":
+        raise Exception("ERROR: you need to set a description.")
+
+    plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor} and a description='{description}'", "info")
 
     prism_members = [Member(plugin=plugin, member_dict=m) for m in members]
 
+    if description == "":
+        raise Exception("You must provide a unique destription!")
+
     # create a new prism object (this is used for our return object only)
-    prism = Prism.create(plugin=plugin, prism_id=prism_id, members=prism_members, outlay_factor=outlay_factor)
+    prism = Prism.create(plugin=plugin, description=description, members=prism_members, outlay_factor=outlay_factor)
 
     # now we want to create a unique offer that is associated with this prism
     # this offer facilitates pay-to-self-destination use case.
