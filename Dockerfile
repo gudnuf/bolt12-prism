@@ -1,4 +1,4 @@
-FROM tuq5hg6cxpz7e/cln:v24.02.2
+FROM lnplay/cln:v24.05
 
 RUN apt update
 
