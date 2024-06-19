@@ -49,13 +49,17 @@ class Member:
         if not isinstance(member["split"], float):
             raise ValueError("Member 'split' must be an float (e.g., 2.0)")
 
-        member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
+        fees_incurred_by = member.get('fees_incurred_by', "remote")
+        allowed_values_icb = ["local", "remote"]
+        if fees_incurred_by not in allowed_values_icb:
+            raise Exception("'fees_incurred_by' can only be 'local' or 'remote'.")
 
-        # TODO
-        member['payout_threshold_msat'] = member.get('payout_threshold_msat', 0)
+        member_payout = int(member.get('payout_threshold_msat', 0))
+        if member_payout < 0:
+            raise Exception("'payout_threshold_msat' must be greater than or equal to 0.")
 
-        # TODO also check to see if the user provided MORE fields than is allowed.
-
+        member['payout_threshold_msat'] = member_payout
+        
     @staticmethod
     def get(plugin: Plugin, member_id: str):
         member_record = plugin.rpc.listdatastore(
