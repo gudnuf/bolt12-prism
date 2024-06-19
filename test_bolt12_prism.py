@@ -77,26 +77,28 @@ def test_general_prism(node_factory, bitcoind):
 
     members_json = [
         {
-            "label": "Lead-Singer",
+            "description": "Lead-Singer",
             "destination": l3_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
         {
-            "label": "Drummer",
+            "description": "Drummer",
             "destination": l4_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
         {
-            "label": "Guitarist",
+            "description": "Guitarist",
             "destination": l5_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
     ]
-    prism1_id = "prism1"
+    description = "prism1"
 
-    l2.rpc.call(
-        "prism-create", {"members": members_json, "prism_id": prism1_id}
+    prism = l2.rpc.call(
+        "prism-create", {"members": members_json, "description": description}
     )
+
+    prism1_id = prism["prism_id"]
 
     prism_ids = [prism["prism_id"] for prism in l2.rpc.call("prism-list")["prisms"]]
     assert prism1_id in prism_ids
@@ -169,47 +171,31 @@ def test_splits(node_factory, bitcoind):
     l3_offer = l3.rpc.offer("any", "CTO")
     l4_offer = l4.rpc.offer("any", "Janitor")
 
-    prism1_id = "prism1"
-
-    members_json_float = [
-        {
-            "label": "CEO",
-            "destination": l2_offer["bolt12"],
-            "split": 0.7,
-        },
-        {
-            "label": "CTO",
-            "destination": l3_offer["bolt12"],
-            "split": 0.3,
-        },
-    ]
-    with pytest.raises(RpcError, match="must be an integer"):
-        l1.rpc.call(
-            "prism-create",
-            {"members": members_json_float, "prism_id": prism1_id},
-        )
+    prism1_description = "prism1"
 
     members_json = [
         {
-            "label": "CEO",
+            "description": "CEO",
             "destination": l2_offer["bolt12"],
-            "split": 5,
+            "split": 5.0,
         },
         {
-            "label": "CTO",
+            "description": "CTO",
             "destination": l3_offer["bolt12"],
-            "split": 3,
+            "split": 3.0,
         },
         {
-            "label": "Janitor",
+            "description": "Janitor",
             "destination": l4_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
     ]
 
-    l1.rpc.call(
-        "prism-create", {"members": members_json, "prism_id": prism1_id}
+    prism = l1.rpc.call(
+        "prism-create", {"members": members_json, "description": prism1_description}
     )
+    prism1_id = prism["prism_id"]
+
     l1.rpc.call("prism-pay", {"prism_id": prism1_id, "amount_msat": 1_000_000})
     wait_for(
         lambda: l2.rpc.listpeerchannels()["channels"][0]["to_us_msat"] > 555_000
@@ -255,27 +241,28 @@ def test_payment_threshold(node_factory, bitcoind):
 
     members_json = [
         {
-            "label": "Lead-Singer",
+            "description": "Lead-Singer",
             "destination": l3_offer["bolt12"],
-            "split": 1,
-            "payout_threshold_msat": "500000",
+            "split": 1.0,
+            "payout_threshold_msat": 500000,
         },
         {
-            "label": "Drummer",
+            "description": "Drummer",
             "destination": l4_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
         {
-            "label": "Guitarist",
+            "description": "Guitarist",
             "destination": l5_offer["bolt12"],
-            "split": 1,
+            "split": 1.0,
         },
     ]
-    prism1_id = "prism1"
+    prism1_description = "prism1"
 
-    l2.rpc.call(
-        "prism-create", {"members": members_json, "prism_id": prism1_id}
+    prism = l2.rpc.call(
+        "prism-create", {"members": members_json, "description": prism1_description}
     )
+    prism1_id = prism["prism_id"]
 
     l2_offer = l2.rpc.offer("any", "Prism")
     l2.rpc.call(
