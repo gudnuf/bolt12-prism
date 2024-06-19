@@ -118,7 +118,6 @@ class Member:
             "description": self.description,
             "destination": self.destination,
             "split": self.split,
-            # TODO: shold this be at the prism level instead?
             "fees_incurred_by": self.fees_incurred_by,
             "payout_threshold_msat": self.payout_threshold_msat
         })
@@ -363,7 +362,7 @@ class Prism:
                         self._plugin.log(f"fees_incurred_by is set to remote. New outlay: {member_msat}-{total_amount_sent}={new_outlay}")
                     elif m.fees_incurred_by == "local":
                         new_outlay = member_msat - total_amount_sent_minus_fees
-                        self._plugin.log(f"fees_incurred_by is set to local. New outlay is {new_outlay}")
+                        self._plugin.log(f"fees_incurred_by is set to local. New outlay is {member_msat}-{total_amount_sent_minus_fees}={new_outlay}")
                     else:
                         raise Exception("If this happens then we have some input validation issues.")
 
@@ -477,8 +476,6 @@ class PrismBinding:
 
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
 
-        plugin.log(f"prism: {prism}")
-
         if not prism:
             raise Exception(f"Could not find prism: {prism_id}")
         members = prism.members
@@ -555,8 +552,6 @@ class PrismBinding:
                                "bind", bolt_version, offer_id]
 
     def to_dict(self):
-        sha256 = hashlib.sha256()
-        sha256.update(self.offer_id.encode('utf-8'))
 
         return {
             "offer_id": self.offer_id,
