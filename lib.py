@@ -84,6 +84,7 @@ class Member:
 
     def __init__(self, plugin: Plugin, member_dict=None):
         self.validate(member_dict)
+        self.id: str = member_dict.get("member_id") if member_dict.get("member_id") else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
         self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
         self.split: float = member_dict.get("split")
@@ -147,7 +148,7 @@ class Prism:
 
         outlay_factor = prism_dict.get("outlay_factor")
 
-        return Prism(plugin, outlay_factor=outlay_factor, description=description, timestamp=timestamp, members=members)
+        return Prism(plugin, outlay_factor=outlay_factor, description=description, timestamp=timestamp, members=members, prism_id=prism_id)
     
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -202,7 +203,7 @@ class Prism:
 
         return our_bindings
 
-    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, description: str = "", members: List[Member] = None):
+    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, description: str = "", members: List[Member] = None, prism_id: str = ""):
 
         self.validate(members)
         self.members = members
@@ -210,6 +211,7 @@ class Prism:
         self.timestamp = timestamp
         self.outlay_factor = outlay_factor
         self._plugin = plugin
+        self.id: str = prism_id if prism_id != "" else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
 
     def to_json(self, member_ids_only=False):
         members = []
