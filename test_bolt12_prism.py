@@ -293,3 +293,82 @@ def test_payment_threshold(node_factory, bitcoind):
     wait_for(
         lambda: l5.rpc.listpeerchannels()["channels"][0]["to_us_msat"] > 600_000
     )
+
+def test_update_outlay(node_factory, bitcoind):
+    l1, l2, l3, l4, l5 = node_factory.get_nodes(
+        5, opts={"experimental-offers": None}
+    )
+    nodes = [l1, l2, l3, l4, l5]
+
+    # fund nodes, create channels, l2 is the prism
+    #
+    #          -> l3
+    # l1 -> l2 -> l4
+    #          -> l5
+    #
+    l1.fundwallet(10_000_000)
+    l2.fundwallet(10_000_000)
+    l1.rpc.fundchannel(l2.info["id"] + "@localhost:" + str(l2.port), 1_000_000)
+    l2.rpc.fundchannel(l3.info["id"] + "@localhost:" + str(l3.port), 1_000_000)
+    bitcoind.generate_block(1)
+    sync_blockheight(bitcoind, nodes)
+    l2.rpc.fundchannel(l4.info["id"] + "@localhost:" + str(l4.port), 1_000_000)
+    bitcoind.generate_block(1)
+    sync_blockheight(bitcoind, nodes)
+    l2.rpc.fundchannel(l5.info["id"] + "@localhost:" + str(l5.port), 1_000_000)
+    bitcoind.generate_block(6)
+    sync_blockheight(bitcoind, nodes)
+
+    l2.rpc.plugin_start(plugin_path)
+
+    l3_offer = l3.rpc.offer("any", "Lead-Singer")
+    l4_offer = l4.rpc.offer("any", "Drummer")
+    l5_offer = l5.rpc.offer("any", "Guitarist")
+
+    members_json = [
+        {
+            "description": "Lead-Singer",
+            "destination": l3_offer["bolt12"],
+            "split": 1.0,
+            "payout_threshold_msat": 500000,
+        },
+        {
+            "description": "Drummer",
+            "destination": l4_offer["bolt12"],
+            "split": 1.0,
+        },
+        {
+            "description": "Guitarist",
+            "destination": l5_offer["bolt12"],
+            "split": 1.0,
+        },
+    ]
+    prism1_description = "prism1"
+
+    prism = l2.rpc.call(
+        "prism-create", {"members": members_json, "description": prism1_description}
+    )
+    prism1_id = prism["prism_id"]
+
+    # generate offer and bind to it
+    l2_offer = l2.rpc.offer("any", "Prism")
+    binding = l2.rpc.call(
+        "prism-bindingadd",
+        {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
+    )
+
+    lead_singer_id = [member["member_id"] for member in binding["prism_members"] if member["description"] == "Lead-Singer"][0]
+    assert lead_singer_id is not None, "Lead-Singer not found in prism"
+
+    new_outlay_msat = 1000000
+
+    # just updates a single member's outlay
+    updated_binding = l2.rpc.call("prism-bindingmemberoutlayreset", {"offer_id": l2_offer["offer_id"], "member_id": lead_singer_id, "new_outlay_msat": new_outlay_msat})["bolt12_prism_bindings"]
+
+    print(f"updated_binding: {updated_binding}")
+
+    assert updated_binding["member_outlays"][0]["outlay_msat"] == new_outlay_msat, "Outlay not updated correctly"
+
+    sanity_check = l2.rpc.call("prism-bindinglist", {"offer_id": l2_offer["offer_id"]})["bolt12_prism_bindings"]
+
+    assert sanity_check["member_outlays"][0]["outlay_msat"] == new_outlay_msat, "Outlay not updated in DB correctly"
