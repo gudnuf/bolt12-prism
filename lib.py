@@ -1,6 +1,6 @@
 try:
     from typing import List
-    from pyln.client import Plugin, RpcError
+    from pyln.client import Plugin, RpcError, Millisatoshi
     import re
     import os
     import uuid
@@ -346,22 +346,22 @@ class Prism:
 
                     status = payment["status"]
                     if status != "complete":
-                        self._plugin.log(f"Failed to pay member {member_id}")
+                        self._plugin.log(f"Failed to pay member {m.id}")
                         continue
 
                     # update the member outlay with the payment amount (respecting fee accounting)
-                    total_amount_sent = payment["amount_sent_msat"]
-                    total_amount_sent_minus_fees = payment["amount_msat"]
+                    total_amount_sent: Millisatoshi = payment["amount_sent_msat"]
+                    total_amount_sent_minus_fees: Millisatoshi = payment["amount_msat"]
 
                     self._plugin.log(f"total_amount_sent: {total_amount_sent}", 'debug')
                     self._plugin.log(f"total_amount_sent_minus_fees: {total_amount_sent_minus_fees}", 'debug')
 
                     new_outlay = None
                     if m.fees_incurred_by == "remote":
-                        new_outlay = member_msat - total_amount_sent
+                        new_outlay = member_msat - int(total_amount_sent)
                         self._plugin.log(f"fees_incurred_by is set to remote. New outlay: {member_msat}-{total_amount_sent}={new_outlay}")
                     elif m.fees_incurred_by == "local":
-                        new_outlay = member_msat - total_amount_sent_minus_fees
+                        new_outlay = member_msat - int(total_amount_sent_minus_fees)
                         self._plugin.log(f"fees_incurred_by is set to local. New outlay is {member_msat}-{total_amount_sent_minus_fees}={new_outlay}")
                     else:
                         raise Exception("If this happens then we have some input validation issues.")
