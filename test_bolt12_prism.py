@@ -363,7 +363,7 @@ def test_update_outlay(node_factory, bitcoind):
     new_outlay_msat = 1000000
 
     # just updates a single member's outlay
-    updated_binding = l2.rpc.call("prism-bindingmemberoutlayreset", {"offer_id": l2_offer["offer_id"], "member_id": lead_singer_id, "new_outlay_msat": new_outlay_msat})["bolt12_prism_bindings"]
+    updated_binding = l2.rpc.call("prism-setoutlay", {"offer_id": l2_offer["offer_id"], "member_id": lead_singer_id, "new_outlay_msat": new_outlay_msat})["bolt12_prism_bindings"]
 
     print(f"updated_binding: {updated_binding}")
 

@@ -205,8 +205,8 @@ def bindprism(plugin: Plugin, prism_id, offer_id=None, invoice_label=""):
 
 
 
-# adds a binding to the database.
-@plugin.method("prism-bindingmemberoutlayreset")
+# set the outlay for a binding-member.
+@plugin.method("prism-setoutlay")
 def set_binding_member_outlay(plugin: Plugin, offer_id=None, member_id=None, new_outlay_msat=0):
     '''Change the member outlay value for a specific prism-binding-member.'''
 
