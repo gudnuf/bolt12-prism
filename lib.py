@@ -18,8 +18,7 @@ except ModuleNotFoundError as err:
                       'result': {'disable': str(err)}}))
     sys.exit(1)
 
-# TODO: find a way to define this dynamically or decide that doesn't make sense to do
-prism_db_version = "v2"
+prism_db_version = "v2.1"
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
 bolt12Regex = re.compile(
