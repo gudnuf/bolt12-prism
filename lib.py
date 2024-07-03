@@ -446,7 +446,10 @@ class PrismBinding:
     @staticmethod
     def set_member_outlay(binding: None, member_id: str, new_outlay_value=0):
 
-        binding.outlays[member_id] = int(new_outlay_value)
+        if member_id in binding.outlays:
+            binding.outlays[member_id] = int(new_outlay_value)
+        else:            
+            raise Exception(f"ERROR: Could not find a member with a member_id of {member_id}")
 
         # TODO this saves the entire prism bindings; we probably need something more
         # precise that saves only the binding-member. But this works for now
