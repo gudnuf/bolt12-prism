@@ -89,7 +89,13 @@ lightning-cli prism-create -k description="Band Prism" members="$MEMBERS_JSON" o
 }
 ```
 
-Setting the `outlay_factor` to `0.8` means that total outlays will be only 80% of the incoming amount. This is an implicit "pay-to-self" of 20%. This feature allows a Prism member to host the prism. Note that if `destination` is a pubkey, then [keysend](https://docs.corelightning.org/reference/lightning-keysend) is used for payouts.
+Setting the `outlay_factor` to `0.75` means that total outlays will be only 75% of the incoming amount. This is an implicit "pay-to-self" of 25%. This feature allows a Prism member to host the prism.
+
+> An `outlay_factor` of `1.1` means total outlays will be 110% of incoming events. This can be used for things like "employer matching" or similar schemes.
+
+Split percentages are normalized over all members of the prism. So, in the case above, each prism member will receive an equal split (i.e., 33.33%) of the total outlays.
+
+> Note that if `destination` is a node pubkey, [keysend](https://docs.corelightning.org/reference/lightning-keysend) is used for payouts instead of BOLT12.
 
 ### Delete a prism
 
