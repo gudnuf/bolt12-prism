@@ -1,6 +1,6 @@
 try:
     from typing import List
-    from pyln.client import Plugin, Millisatoshi, RpcError
+    from pyln.client import Plugin, RpcError, Millisatoshi
     import re
     import os
     import uuid
@@ -18,8 +18,7 @@ except ModuleNotFoundError as err:
                       'result': {'disable': str(err)}}))
     sys.exit(1)
 
-# TODO: find a way to define this dynamically or decide that doesn't make sense to do
-prism_db_version = "v2"
+prism_db_version = "v2.1"
 
 pubkeyRegex = re.compile(r'^0[2-3][0-9a-fA-F]{64}$')
 bolt12Regex = re.compile(
@@ -36,8 +35,8 @@ class Member:
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
 
-        if not isinstance(member["label"], str):
-            raise ValueError("Member 'label' must be a string.")
+        if not isinstance(member["description"], str):
+            raise ValueError("Member 'description' must be a string.")
 
         if not isinstance(member["destination"], str):
             raise ValueError("Member 'destination' must be a string")
@@ -46,21 +45,20 @@ class Member:
             raise Exception(
                 "Destination must be a valid lightning node pubkey or bolt12 offer.")
 
-        if not isinstance(member["split"], int):
-            raise ValueError("Member 'split' must be an integer")
+        if not isinstance(member["split"], float):
+            raise ValueError("Member 'split' must be an float (e.g., 2.0)")
 
-        if member["split"] < 1 or member["split"] > 1000:
-            raise ValueError(
-                "Member 'split' must be an integer between 1 and 1000")
+        fees_incurred_by = member.get('fees_incurred_by', "remote")
+        allowed_values_icb = ["local", "remote"]
+        if fees_incurred_by not in allowed_values_icb:
+            raise Exception("'fees_incurred_by' can only be 'local' or 'remote'.")
 
-        # TODO fees_incurred_by should be used in outlay calculations; valid are local/remote
-        member['fees_incurred_by'] = member.get('fees_incurred_by', "remote")
+        member_payout = int(member.get('payout_threshold_msat', 0))
+        if member_payout < 0:
+            raise Exception("'payout_threshold_msat' must be greater than or equal to 0.")
 
-        # TODO
-        member['payout_threshold_msat'] = member.get('payout_threshold_msat', 0)
-
-        # TODO also check to see if the user provided MORE fields than is allowed.
-
+        member['payout_threshold_msat'] = member_payout
+        
     @staticmethod
     def get(plugin: Plugin, member_id: str):
         member_record = plugin.rpc.listdatastore(
@@ -89,16 +87,16 @@ class Member:
 
     def __init__(self, plugin: Plugin, member_dict=None):
         self.validate(member_dict)
-
-        self.id = member_dict.get("member_id") if member_dict.get(
-            "member_id") else str(uuid.uuid4())
-        self.label: str = member_dict.get("label")
+        self.id: str = member_dict.get("member_id") if member_dict.get("member_id") else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
+        self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
-        self.split: str = member_dict.get("split")
+        self.split: float = member_dict.get("split")
+        if self.split <= 0:
+            raise Exception("The split MUST be a positive number (e.g., 2.0)")
         self.fees_incurred_by: str = member_dict.get(
             "fees_incurred_by") if member_dict.get("fees_incurred_by") else "remote"
-        self.payout_threshold_msat: Millisatoshi = Millisatoshi(member_dict.get(
-            "payout_threshold_msat") + "msat") if member_dict.get("payout_threshold_msat") else Millisatoshi(0)
+        self.payout_threshold_msat: int = int(member_dict.get(
+            "payout_threshold_msat")) if member_dict.get("payout_threshold_msat") else int(0)
 
         self._plugin = plugin
 
@@ -116,22 +114,21 @@ class Member:
     def to_json(self):
         return json.dumps({
             "member_id": self.id,
-            "label": self.label,
+            "description": self.description,
             "destination": self.destination,
             "split": self.split,
-            # TODO: shold this be at the prism level instead?
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
+            "payout_threshold_msat": self.payout_threshold_msat
         })
 
     def to_dict(self):
         return {
             "member_id": self.id,
-            "label": self.label,
+            "description": self.description,
             "destination": self.destination,
             "split": self.split,
             "fees_incurred_by": self.fees_incurred_by,
-            "payout_threshold_msat": str(self.payout_threshold_msat).replace('msat', '')
+            "payout_threshold_msat": self.payout_threshold_msat
         }
 
 class Prism:
@@ -145,13 +142,15 @@ class Prism:
 
         prism_id = prism_dict.get("prism_id")
 
+        description = prism_dict.get("description")
+
         members = Member.find_many(plugin, prism_dict.get("prism_members"))
 
         timestamp = prism_dict.get("timestamp")
 
         outlay_factor = prism_dict.get("outlay_factor")
 
-        return Prism(plugin, outlay_factor=outlay_factor, timestamp=timestamp, prism_id=prism_id, members=members)
+        return Prism(plugin, outlay_factor=outlay_factor, description=description, timestamp=timestamp, members=members, prism_id=prism_id)
     
     @staticmethod
     def get(plugin: Plugin, prism_id: str):
@@ -176,9 +175,9 @@ class Prism:
         return prism_ids
     
     @staticmethod
-    def create(plugin: Plugin, outlay_factor, prism_id: str = None, members: List[Member] = None):
+    def create(plugin: Plugin, outlay_factor, description: str = None, members: List[Member] = None):
         timestamp = round(time.time())
-        prism = Prism(plugin, timestamp=timestamp, prism_id=prism_id, members=members, outlay_factor=outlay_factor)
+        prism = Prism(plugin, timestamp=timestamp, description=description, members=members, outlay_factor=outlay_factor)
         prism.save()
         return prism
 
@@ -206,13 +205,15 @@ class Prism:
 
         return our_bindings
 
-    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, prism_id: str = None, members: List[Member] = None):
+    def __init__(self, plugin: Plugin, outlay_factor: float, timestamp: str, description: str = "", members: List[Member] = None, prism_id: str = ""):
+
         self.validate(members)
         self.members = members
-        self.id = prism_id if prism_id else str(uuid.uuid4())
+        self.description = description
         self.timestamp = timestamp
         self.outlay_factor = outlay_factor
         self._plugin = plugin
+        self.id: str = prism_id if prism_id != "" else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
 
     def to_json(self, member_ids_only=False):
         members = []
@@ -222,6 +223,7 @@ class Prism:
             members = [member.to_dict() for member in self.members]
         return json.dumps({
             "prism_id": self.id,
+            "description": self.description,
             "timestamp": self.timestamp,
             "outlay_factor": self.outlay_factor,
             "prism_members": members
@@ -230,6 +232,7 @@ class Prism:
     def to_dict(self):
         return {
             "prism_id": self.id,
+            "description": self.description,
             "timestamp": self.timestamp,
             "outlay_factor": self.outlay_factor,
             "prism_members": [member.to_dict() for member in self.members]
@@ -280,18 +283,18 @@ class Prism:
         results = {}
 
         for m in self.members:
-            member_msat = Millisatoshi(0)
+            member_msat = 0
 
             if binding is None:
                 # when a binding is not provided (when we're using prism.pay, for example)
                 # the member_msat is set to the proportional share of defined in the split defintion
-                member_msat = Millisatoshi(math.floor(amount_msat * (m.split / self.total_splits)))
+                member_msat = int(math.floor(amount_msat * (m.split / self.total_splits)))
                 self._plugin.log(f"In Prism.pay, but no binding was provided, thus setting member_msat to a {member_msat}.")
 
             else:
                 # but if the user provids a binding object, then we set the member_msat to the
                 # outlay for the respective prism member.
-                member_msat = Millisatoshi(binding.outlays[m.id])
+                member_msat = int(binding.outlays[m.id])
                 self._plugin.log(f"In Prism.pay, and a binding was provided. Setting member_msat to the member's outlay: {member_msat}")
 
                 # we stop processing if the 
@@ -312,21 +315,64 @@ class Prism:
                         self._plugin.log(f"bolt12_payment:  {payment}")
                     else:
                         self._plugin.log(f"Could not fetch an invoice from the remote peer.", "warn")
-
                 except RpcError as e:
                     self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+                except Exception as e:
+                    self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+
             elif pubkeyRegex.match(m.destination):
                 try:
                     self._plugin.log(f"Attempting keysend payment for {member_msat}msats to node with pubkey {m.destination}", 'debug')
                     payment = self._plugin.rpc.keysend(destination=m.destination, amount_msat=member_msat)
                     self._plugin.log(f"keysend_payment:  {payment}")
                 except RpcError as e:
+                    self._plugin.log(f"Prism member bolt12 payment did not complete.:  {e}", 'warn')
+                    continue
+                except Exception as e:
                     self._plugin.log(f"Prism member keysend payment did not complete:  {e}", 'warn')
+                    continue
+            else:
+                raise Exception("ERROR: The destination was an invalid format. This should never happen!")
 
+            results[m.id] = None
             if payment is not None:
                 results[m.id] = payment
-            else:
-                results[m.id] = None
+
+                # if there's a binding, we update the outlay.
+                if binding is not None:
+
+                    status = payment["status"]
+                    if status != "complete":
+                        self._plugin.log(f"Failed to pay member {m.id}")
+                        continue
+
+                    # update the member outlay with the payment amount (respecting fee accounting)
+                    total_amount_sent: Millisatoshi = payment["amount_sent_msat"]
+                    total_amount_sent_minus_fees: Millisatoshi = payment["amount_msat"]
+
+                    self._plugin.log(f"total_amount_sent: {total_amount_sent}", 'debug')
+                    self._plugin.log(f"total_amount_sent_minus_fees: {total_amount_sent_minus_fees}", 'debug')
+
+                    new_outlay = None
+                    if m.fees_incurred_by == "remote":
+                        new_outlay = member_msat - int(total_amount_sent)
+                        self._plugin.log(f"fees_incurred_by is set to remote. New outlay: {member_msat}-{total_amount_sent}={new_outlay}")
+                    elif m.fees_incurred_by == "local":
+                        new_outlay = member_msat - int(total_amount_sent_minus_fees)
+                        self._plugin.log(f"fees_incurred_by is set to local. New outlay is {member_msat}-{total_amount_sent_minus_fees}={new_outlay}")
+                    else:
+                        raise Exception("If this happens then we have some input validation issues.")
+
+                    # now that we have the new outlay value, we need to persist it to the db
+                    self._plugin.log(f"new_outlay: {new_outlay}", "debug")
+
+                    binding.outlays[m.id] = new_outlay
+
+                    # TODO this saves the entire prism bindings; we probably need something more
+                    # precise that saves only the binding-member. But this works for now
+                    binding.save()
 
         self._plugin.log(
             f"PRISM-PAY: ID={self.id}: {len(self.members)} members; {amount_msat} msat total", 'debug')
@@ -397,6 +443,18 @@ class PrismBinding:
 
         return PrismBinding.from_db_string(plugin, string=binding_records[0].get('string'), bind_to=bind_to, bolt_version=bolt_version)
 
+    @staticmethod
+    def set_member_outlay(binding: None, member_id: str, new_outlay_value=0):
+
+        if member_id in binding.outlays:
+            binding.outlays[member_id] = int(new_outlay_value)
+        else:            
+            raise Exception(f"ERROR: Could not find a member with a member_id of {member_id}")
+
+        # TODO this saves the entire prism bindings; we probably need something more
+        # precise that saves only the binding-member. But this works for now
+        binding.save()
+
     # is is the revers of the method above. It return all prism-bindings,
     # but keyed on offer_id, as stored in the database.
 
@@ -420,8 +478,6 @@ class PrismBinding:
 
         prism = Prism.get(plugin=plugin, prism_id=prism_id)
 
-        plugin.log(f"prism: {prism}")
-
         if not prism:
             raise Exception(f"Could not find prism: {prism_id}")
         members = prism.members
@@ -433,7 +489,7 @@ class PrismBinding:
         binding_value = {
             "prism_id": prism_id,
             "timestamp": timestamp,
-            "member_outlays": {member.id: "0msat" for member in members}
+            "member_outlays": {member.id: 0 for member in members}
         }
 
         # save the record
@@ -498,20 +554,18 @@ class PrismBinding:
                                "bind", bolt_version, offer_id]
 
     def to_dict(self):
-        sha256 = hashlib.sha256()
-        sha256.update(self.offer_id.encode('utf-8'))
 
         return {
             "offer_id": self.offer_id,
             "prism_id": self.prism.id,
             "timestamp": self.timestamp,
-            "member_outlays":  [
+            "member_outlays": [
                 {
                     "member_id": member_id, 
-                    "outlay_msat": outlay.replace('msat','')
+                    "outlay_msat": outlay
                 } 
                 for member_id, outlay in self.outlays.items() 
-                    ]
+            ]
         }
 
     def to_json(self):
@@ -546,7 +600,7 @@ class PrismBinding:
             member_msat = math.floor(
                 amount_msat * (m.split / self.prism.total_splits))
 
-            new_amount = Millisatoshi(outlay) + Millisatoshi(member_msat)
+            new_amount = int(outlay) + int(member_msat)
 
             self._plugin.log(
                 f"Updating member {member_id} outlay to {new_amount}")
@@ -557,44 +611,14 @@ class PrismBinding:
 
         self.save()
 
-    def update_outlays(self, payment_results):
-        new_outlays = {}
-        for member_id, outlay in self.outlays.items():
-            payment_amount = 0
-            payment_result = payment_results.get(member_id, None)
-
-            if payment_result:
-                status = payment_result["status"]
-                if status != "complete":
-                    self._plugin.log(f"Failed to pay member {member_id}")
-                    new_outlays[member_id] = outlay
-                    continue
-            
-                payment_amount = payment_result.get("amount_sent_msat", 0)
-            else:
-                self._plugin.log(f"No payment_result for member {member_id}. This could indicate a failed payment. Outlays will remain unchanged.", "warn")
-
-            new_outlay = Millisatoshi(outlay) - Millisatoshi(payment_amount)
-
-            new_outlays[member_id] = new_outlay
-
-        self._plugin.log(f"New outlay values after decrementing: {new_outlays}")
-        self.outlays = new_outlays
-
-        self.save()
-
     def pay(self, amount_msat):
 
         payment_results = None
         self._plugin.log(f"Calculating total outlays...")
         total_outlays = amount_msat * self.prism.outlay_factor
-        self._plugin.log(f"Total outlays are {total_outlays} after applying an outlay factor of {self.prism.outlay_factor} to the income amount {amount_msat}.")
+        self._plugin.log(f"Total outlays will be {total_outlays} after applying an outlay factor of {self.prism.outlay_factor} to the income amount {amount_msat}.")
         self.increment_outlays(amount_msat=total_outlays)
-
-        # TODO we need to narrow the gap between these two functions.
         payment_results = self.prism.pay(amount_msat, binding=self)
-        self.update_outlays(payment_results)
-
         self._plugin.log(f"PAYMENT RESULTS: {payment_results}", 'debug')
 
         return True

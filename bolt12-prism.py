@@ -34,15 +34,21 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, prism_id="", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
+def createprism(plugin, members, description: str = "", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
     '''Create a prism.'''
 
-    plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor}", "info")
+    if description == "":
+        raise Exception("ERROR: you need to set a description.")
+
+    plugin.log(f"prism-create invoked having an outlay_factor of {outlay_factor} and a description='{description}'", "info")
 
     prism_members = [Member(plugin=plugin, member_dict=m) for m in members]
 
+    if description == "":
+        raise Exception("You must provide a unique destription!")
+
     # create a new prism object (this is used for our return object only)
-    prism = Prism.create(plugin=plugin, prism_id=prism_id, members=prism_members, outlay_factor=outlay_factor)
+    prism = Prism.create(plugin=plugin, description=description, members=prism_members, outlay_factor=outlay_factor)
 
     # now we want to create a unique offer that is associated with this prism
     # this offer facilitates pay-to-self-destination use case.
@@ -197,6 +203,35 @@ def bindprism(plugin: Plugin, prism_id, offer_id=None, invoice_label=""):
 
     return add_binding_result
 
+
+
+# set the outlay for a binding-member.
+@plugin.method("prism-setoutlay")
+def set_binding_member_outlay(plugin: Plugin, offer_id=None, member_id=None, new_outlay_msat=0):
+    '''Change the member outlay value for a specific prism-binding-member.'''
+
+    # Ensure new_outlay_msat is converted to an integer
+    try:
+        new_outlay_msat = int(new_outlay_msat)
+    except ValueError:
+        raise ValueError("new_outlay_msat must be convertible to an integer")
+
+    # then we're going to return a single binding.
+    binding = PrismBinding.get(plugin, offer_id)
+
+    if not binding:
+        raise Exception("ERROR: could not find a binding for this offer.")
+
+    plugin.log(f"Updating outlay for Prism Binding offer_id={offer_id}, member_id={member_id}, new outlay: '{new_outlay_msat}msat'", "info")
+
+    PrismBinding.set_member_outlay(binding, member_id, new_outlay_msat)
+
+    prism_response = {
+        f"bolt12_prism_bindings": binding.to_dict()
+    }
+
+    return prism_response
+
 @plugin.method("prism-bindingremove")
 def remove_prism_binding(plugin, offer_id=None, invoice_label=""):
     '''Removes a prism binding.'''
@@ -263,8 +298,10 @@ def prism_execute(plugin, prism_id, amount_msat=0, label=""):
 
     if prism is None:
         raise Exception("ERROR: could not find prism.")
-
-    pay_results = prism.pay(amount_msat=amount_msat)
+    
+    total_outlays = amount_msat * prism.outlay_factor
+    plugin.log(f"Total outlays will be {total_outlays} after applying an outlay factor of {prism.outlay_factor} to the income amount {amount_msat}.")
+    pay_results = prism.pay(amount_msat=total_outlays)
 
     return {
             "prism_member_payouts": pay_results
