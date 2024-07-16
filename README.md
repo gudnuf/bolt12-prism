@@ -157,52 +157,34 @@ When run, this RPC command will execute (i.e., pay-out) a prism.
 ```json
 {
    "prism_member_payouts": {
-      "c0772494d0d83318cf47ea1dbabcf3e37df2218090f9f20585867f135c241279": {
-         "destination": "02ed12cb4a37b65032c9c8551deb3ccae9532481a1a04267dfeb02f96f887e8462",
-         "payment_hash": "556de902e890674edc26af197e95f5e7b9281f8d104381d7c03cacf8cbcca5ea",
-         "created_at": 1718764199.7347724,
-         "parts": 1,
-         "amount_msat": 2666666,
-         "amount_sent_msat": 2666666,
-         "payment_preimage": "70253f59527db2191d45d95be86ca47e593684f7e426710f24529612216b1172",
-         "status": "complete"
-      },
-      "d624d9b334b06d84560f1095d153001cb8ae829a8270d6fe29fa6d715efd538d": {
-         "destination": "02e4cc35ff6e7d43edc71db8146ae558f5b00a6d1e783e9ab10ad63bd82975502c",
-         "payment_hash": "61c58e680b30751b8b5435280d435639ae6feef67d3b7c38aa2d0ebc6ab359a2",
-         "created_at": 1718764200.7018805,
-         "parts": 1,
-         "amount_msat": 2666666,
-     {
-   "prism_member_payouts": {
-      "95256245897c5423f9c319afbcd224dba9902cb829991a2435e2902631810389": {
-         "destination": "03962b7253b5574baf3c1eb133f4045c5913f22f7fda320b42525de13875448d80",
-         "payment_hash": "e6dd62613b51366ce39ad9ee588e1e76a82cdd887634ffeb32f84ca9d4ead3fc",
-         "created_at": 1720044718.095364,
+      "547d51d513aec15dc2229047d6d912b63d39416e3682b6dee4d6ae686f88b9b4": {
+         "destination": "03a43dce86b0c2bd0b18d97e28f045be5866c94bff3ca8a96e5a4a370f469e26b9",
+         "payment_hash": "89ea468a04f5747882b21d4f50d13e353b3d346a50d5ba80f8f94000d0596cc1",
+         "created_at": 1721069260.3575482,
          "parts": 1,
          "amount_msat": 2500000,
          "amount_sent_msat": 2500000,
-         "payment_preimage": "c7f0222fe6bc3df4ed14146aca88cbd79360662683d1edb71a824338add87be2",
+         "payment_preimage": "11eaaa9cc7e0e8a27038130ecad56bb766d0ed5e09d202e313ea06620344abec",
          "status": "complete"
       },
-      "412c79d6feafdf907a348ddb15627ba057d2c3ac3615f8f41680acd176d8bc2d": {
-         "destination": "02dbfb1d0a6fbc717ae3f28e4dc185d812e399ee33055587eeb06469c94e4326e5",
-         "payment_hash": "2a121e2ca5c6a37fe51521c8f27c30284d6469d664b9527df88ebddb29818e39",
-         "created_at": 1720044719.0942972,
+      "1fdda73dbdd4d3dda4057cf302ec10dedfc55466163133fd236e313a60a52204": {
+         "destination": "0273d97fd40ac7c17fd9bd6476316edf44aafcf25a41ef9c36b941b2fe4396c4de",
+         "payment_hash": "c773cb2cdb6c1fc5478c972effa75588f2b6e63f11005a475dc052f5c48f82ce",
+         "created_at": 1721069261.4327104,
          "parts": 1,
          "amount_msat": 2500000,
          "amount_sent_msat": 2500000,
-         "payment_preimage": "23f75fbeb05d9a7940cb16cbf1844bb1d03046d094da131847cf9742b64a7a3d",
+         "payment_preimage": "0ba602d4ebd33bead0947c244360963dedead47c2a79eb35ca2afebdfa0bf37d",
          "status": "complete"
       },
-      "ebc13b1be16346e8e08571cbde85f5eb604cd76233181b5edbd559e3f35858ab": {
-         "destination": "0305657478be7bc7c3fb679bf831df1e07dd04dbfeb6d71b2b86fefbdf012bab8e",
-         "payment_hash": "c8ad412c5f71547d0d9f62a4693c3e1a2889093e2bac06f1db696409d4122fb4",
-         "created_at": 1720044720.0844057,
+      "22dad0bd9cfcf4adfa367d2627e80a7a92e531b60a3d7c006495258c57b9db5e": {
+         "destination": "02e36cf99a16ac84446bcd60258ce2a0a6e334346b07ee647b88fce18c6d4fe3a0",
+         "payment_hash": "325de28046cc828644169be6a03e1dceef1896cf30822ccb32ed10ff88eb5ef2",
+         "created_at": 1721069262.5050325,
          "parts": 1,
          "amount_msat": 2500000,
          "amount_sent_msat": 2500000,
-         "payment_preimage": "a404ece612b6dd056f337ee8e30999044652e5a676aca5f31e5c1a00e470d9c3",
+         "payment_preimage": "730e0b6ab952cb681ccb5c7b84bc7b507790bb70bbb88156bbbec0d2c7f84f45",
          "status": "complete"
       }
    }
