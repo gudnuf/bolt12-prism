@@ -311,7 +311,7 @@ class Prism:
                     invoice = bolt12_invoice.get("invoice")
 
                     if invoice is not None:
-                        payment = self._plugin.rpc.pay(bolt11=invoice)
+                        payment = self._plugin.rpc.pay(invoice)
                         self._plugin.log(f"bolt12_payment:  {payment}")
                     else:
                         self._plugin.log(f"Could not fetch an invoice from the remote peer.", "warn")
@@ -383,15 +383,10 @@ class PrismBinding:
     prism: Prism
 
     @staticmethod
-    def delete(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
-        # TODO: below code is repeated from PrismBinding.get()
-        types = ["bolt11", "bolt12"]
-        if bolt_version not in types:
-            raise Exception(
-                "ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+    def delete(plugin: Plugin, offer_id: str):
 
         bindings_key = ["prism", prism_db_version,
-                        "bind", bolt_version, bind_to]
+                        "bind", "bolt12", offer_id]
 
         binding_records = {}
         try:
@@ -402,13 +397,13 @@ class PrismBinding:
 
         if not binding_records:
             raise Exception(
-                f"Could not find a prism binding for offer {bind_to}")
+                f"Could not find a prism binding for offer {offer_id}")
 
 
         return binding_records
 
     @staticmethod
-    def from_db_string(plugin: Plugin, string: str, bind_to: str, bolt_version: str):
+    def from_db_string(plugin: Plugin, string: str, offer_id: str):
         parsed = json.loads(string)
 
         prism_id = parsed.get('prism_id', None)
@@ -421,18 +416,13 @@ class PrismBinding:
         if not member_outlays:
             raise Exception("Invalid binding. Missing member_outlays")
 
-        return PrismBinding(plugin, timestamp=timestamp, outlays=member_outlays, offer_id=bind_to, prism_id=prism_id, bolt_version=bolt_version)
+        return PrismBinding(plugin, timestamp=timestamp, outlays=member_outlays, offer_id=offer_id, prism_id=prism_id)
 
     @staticmethod
-    def get(plugin: Plugin, bind_to: str, bolt_version="bolt12"):
-
-        types = ["bolt11", "bolt12"]
-        if bolt_version not in types:
-            raise Exception(
-                "ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+    def get(plugin: Plugin, offer_id: str):
 
         bindings_key = ["prism", prism_db_version,
-                        "bind", bolt_version, bind_to]
+                        "bind", "bolt12", offer_id]
 
         binding_records = plugin.rpc.listdatastore(
             key=bindings_key).get("datastore", [])
@@ -441,7 +431,7 @@ class PrismBinding:
             raise Exception(
                 f"Could not find: {bindings_key}")
 
-        return PrismBinding.from_db_string(plugin, string=binding_records[0].get('string'), bind_to=bind_to, bolt_version=bolt_version)
+        return PrismBinding.from_db_string(plugin, string=binding_records[0].get('string'), offer_id=offer_id)
 
     @staticmethod
     def set_member_outlay(binding: None, member_id: str, new_outlay_value=0):
@@ -459,10 +449,10 @@ class PrismBinding:
     # but keyed on offer_id, as stored in the database.
 
     @staticmethod
-    def add_binding(plugin: Plugin, bind_to: str, prism_id: str,  bolt_version="bolt12"):
+    def add_binding(plugin: Plugin, prism_id: str, offer_id: str, ):
 
         prism_binding_key = ["prism", prism_db_version,
-                             "bind", bolt_version, bind_to]
+                             "bind", "bolt12", offer_id]
 
         # first we need to see if there are any existing binding records for this prism_id/invoice_type
         # plugin.log(f"prism_binding_key: {prism_binding_key}")
@@ -499,7 +489,7 @@ class PrismBinding:
         response = {
             "status": dbmode,
             "timestamp": timestamp,
-            "offer_id": bind_to,
+            "offer_id": offer_id,
             "prism_id": prism_id,
             "prism_binding_key": prism_binding_key,
             "prism_members": [member.to_dict() for member in members]
@@ -508,13 +498,9 @@ class PrismBinding:
         return response
 
     @staticmethod
-    def list_binding_offers(plugin, bolt_version="bolt12"):
-        types = ["bolt11", "bolt12"]
-        if bolt_version not in types:
-            raise Exception(
-                "ERROR: 'type' MUST be either 'bolt12' or 'bolt11'.")
+    def list_binding_offers(plugin):
 
-        bindings_key = ["prism", prism_db_version, "bind", bolt_version]
+        bindings_key = ["prism", prism_db_version, "bind", "bolt12"]
 
         binding_records = plugin.rpc.listdatastore(
             key=bindings_key).get("datastore", [])
@@ -525,7 +511,7 @@ class PrismBinding:
             offer_id = binding_record["key"][4]
             #plugin.log(f"offer_id: {offer_id}")
             binding_record_str = binding_record['string']
-            binding = PrismBinding.from_db_string(plugin, string=binding_record_str, bind_to=offer_id, bolt_version=bolt_version) 
+            binding = PrismBinding.from_db_string(plugin, string=binding_record_str, offer_id=offer_id) 
             bindings.append(binding)
 
         return bindings
@@ -534,12 +520,11 @@ class PrismBinding:
     def datastore_key(self):
         return self._datastore_key
 
-    def __init__(self, plugin: Plugin, timestamp: int, outlays, offer_id, prism_id, bolt_version="bolt12", binding_dict=None):
+    def __init__(self, plugin: Plugin, timestamp: int, outlays, offer_id, prism_id, binding_dict=None):
 
         self._plugin = plugin
         self.offer_id = offer_id
         self.timestamp = timestamp
-        self.bolt_version = bolt_version
         self.members = None
 
         self.prism = Prism.get(plugin, prism_id)
@@ -551,7 +536,7 @@ class PrismBinding:
             self.members = binding_dict
 
         self._datastore_key = ["prism", prism_db_version,
-                               "bind", bolt_version, offer_id]
+                               "bind", "bolt12", offer_id]
 
     def to_dict(self):
 
