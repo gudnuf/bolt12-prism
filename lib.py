@@ -31,22 +31,31 @@ if os.path.isfile(plugin_out):
 
 class Member:
     @staticmethod
-    def validate(member):
+    def validate(plugin, member):
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
 
         if not isinstance(member["description"], str):
             raise ValueError("Member 'description' must be a string.")
 
-        if not isinstance(member["destination"], str):
-            raise ValueError("Member 'destination' must be a string")
+        # TODO ensure there are no duplicate destinations
 
-        if not bolt12Regex.match(member["destination"]) and not pubkeyRegex.match(member["destination"]):
+        destination = member["destination"]
+        if not bolt12Regex.match(destination) and not pubkeyRegex.match(destination):
             raise Exception(
                 "Destination must be a valid lightning node pubkey or bolt12 offer.")
 
+        if bolt12Regex.match(member["destination"]):
+            # if it is a bolt12, run it through rpc.decode
+            decode_result = plugin.rpc.decode(string=destination)
+            #plugin.log(f"decode_result:  {decode_result}")
+            if decode_result["type"] != "bolt12 offer" or decode_result["valid"] != True:
+                raise Exception("The destination is not recognized as a valid BOLT12 offer.")
+
         if not isinstance(member["split"], float):
             raise ValueError("Member 'split' must be an float (e.g., 2.0)")
+
+        # TODO we should make the "split" value positive, yes?
 
         fees_incurred_by = member.get('fees_incurred_by', "remote")
         allowed_values_icb = ["local", "remote"]
@@ -86,7 +95,8 @@ class Member:
         return self._datastore_key
 
     def __init__(self, plugin: Plugin, member_dict=None):
-        self.validate(member_dict)
+        self._plugin = plugin
+        self.validate(plugin, member_dict)
         self.id: str = member_dict.get("member_id") if member_dict.get("member_id") else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
         self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
@@ -98,7 +108,6 @@ class Member:
         self.payout_threshold_msat: int = int(member_dict.get(
             "payout_threshold_msat")) if member_dict.get("payout_threshold_msat") else int(0)
 
-        self._plugin = plugin
 
         self._datastore_key = ["prism", prism_db_version, "member", self.id]
 
@@ -214,6 +223,29 @@ class Prism:
         self.outlay_factor = outlay_factor
         self._plugin = plugin
         self.id: str = prism_id if prism_id != "" else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
+
+        getinfoResult = plugin.rpc.getinfo()
+        clnVersion = getinfoResult["version"]
+        matches = re.search(r'(\d+)\.(\d+)', clnVersion)
+        if matches:
+            major_cln_version = int(matches.group(1))
+            minor_cln_version = int(matches.group(2))
+        else:
+            raise Exception("Could not determine the CLN version number.")
+
+        formatted_version_as_str = str(major_cln_version).zfill(2) + str(minor_cln_version).zfill(2)
+        formatted_version_as_int = int(formatted_version_as_str)
+
+        if formatted_version_as_int >= 2408:
+            explicit_ptsd_enabled = True
+
+        if explicit_ptsd_enabled == True:
+            # now we want to create a unique offer that is associated with this prism
+            # this offer facilitates [explicit pay-to-self-destination] use case.
+            create_identity_offer_response = plugin.rpc.offer(amount="any", 
+                description=f"pay-to-self destination for prism {self.description}", 
+                label=f"prism_id::{self.id}")
+            ptsd_offer_id = create_identity_offer_response["offer_id"]
 
     def to_json(self, member_ids_only=False):
         members = []

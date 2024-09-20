@@ -16,22 +16,30 @@ except ModuleNotFoundError as err:
 
 
 plugin = Plugin()
-
+ 
 @plugin.init()  # Decorator to define a callback once the `init` method call has successfully completed
 def init(options, configuration, plugin, **kwargs):
 
     getinfoResult = plugin.rpc.getinfo()
     clnVersion = getinfoResult["version"]
-    #searchString = 'v24.03'
-    numbers = re.findall(r'v(\d+)\.', clnVersion)
-    major_cln_version = int(numbers[0]) if numbers else None
-    #plugin.log(f"major_cln_version: {major_cln_version}")
-    if major_cln_version != None:
-        if major_cln_version < 24:
-            raise Exception("The BOLT12 Prism plugin is only compatible with CLN v24 and above.")
+    matches = re.search(r'(\d+)\.(\d+)', clnVersion)
+    if matches:
+        major_cln_version = int(matches.group(1))
+        minor_cln_version = int(matches.group(2))
+    else:
+        raise Exception("Could not determine the CLN version number.")
 
-    plugin.log("prism-api initialized")
+    if major_cln_version != None and minor_cln_version != None:
+        if major_cln_version < 23:
+            raise Exception("The BOLT12 Prism plugin is only compatible with CLN v23 and above.")
 
+    formatted_version_as_str = str(major_cln_version).zfill(2) + str(minor_cln_version).zfill(2)
+    formatted_version_as_int = int(formatted_version_as_str)
+
+    plugin.log(f"prism-api initialized - running CLN {formatted_version_as_str}")
+
+    if formatted_version_as_int >= 2408:
+        pay_to_self_destination_enabled = True
 
 @plugin.method("prism-create")
 def createprism(plugin, members, description: str = "", outlay_factor: float = 1.0):
@@ -47,18 +55,10 @@ def createprism(plugin, members, description: str = "", outlay_factor: float = 1
     if description == "":
         raise Exception("You must provide a unique destription!")
 
+
     # create a new prism object (this is used for our return object only)
     prism = Prism.create(plugin=plugin, description=description, members=prism_members, outlay_factor=outlay_factor)
 
-    # now we want to create a unique offer that is associated with this prism
-    # this offer facilitates pay-to-self-destination use case.
-    if pay_to_self_enabled == True:
-        create_offer_response = plugin.rpc.offer(amount="any", description=prism_id, label=f"internal:prism:{prism_id}")
-        ptsd_offer_id = create_offer_response["offer_id"]
-        plugin.log(f"In prism-create. Trying to create a PTSD offer binding. here's the ptsd_offer_bolt12 {ptsd_offer_id}")
-        bind_prism_response = bindprism(plugin=plugin, prism_id=prism.id, offer_id=ptsd_offer_id)
-
-    # return the prism json
     return prism.to_dict()
 
 @plugin.method("prism-list")
@@ -170,7 +170,6 @@ def bindprism(plugin: Plugin, prism_id, offer_id=None):
     add_binding_result = PrismBinding.add_binding(plugin=plugin, prism_id=prism_id, offer_id=offer_id)
 
     return add_binding_result
-
 
 # set the outlay for a binding-member.
 @plugin.method("prism-setoutlay")
