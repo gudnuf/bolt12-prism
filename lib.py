@@ -31,7 +31,7 @@ if os.path.isfile(plugin_out):
 
 class Member:
     @staticmethod
-    def validate(member):
+    def validate(plugin, member):
         if not isinstance(member, dict):
             raise ValueError("Each member in the list must be a dictionary.")
 
@@ -41,9 +41,17 @@ class Member:
         if not isinstance(member["destination"], str):
             raise ValueError("Member 'destination' must be a string")
 
-        if not bolt12Regex.match(member["destination"]) and not pubkeyRegex.match(member["destination"]):
+        destination = member["destination"]
+        if not bolt12Regex.match(destination) and not pubkeyRegex.match(destination) and destination != "":
             raise Exception(
-                "Destination must be a valid lightning node pubkey or bolt12 offer.")
+                "Destination must be a valid bolt12 offer, node pubkey, or empty.")
+
+        if bolt12Regex.match(member["destination"]):
+            # if it is a bolt12, run it through rpc.decode
+            decode_result = plugin.rpc.decode(string=destination)
+            #plugin.log(f"decode_result:  {decode_result}")
+            if decode_result["type"] != "bolt12 offer" or decode_result["valid"] != True:
+                raise Exception("The destination is not recognized as a valid BOLT12 offer.")
 
         if not isinstance(member["split"], float):
             try:
@@ -92,7 +100,8 @@ class Member:
         return self._datastore_key
 
     def __init__(self, plugin: Plugin, member_dict=None):
-        self.validate(member_dict)
+        self._plugin = plugin
+        self.validate(plugin, member_dict)
         self.id: str = member_dict.get("member_id") if member_dict.get("member_id") else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
         self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
@@ -104,7 +113,6 @@ class Member:
         self.payout_threshold_msat: int = int(member_dict.get(
             "payout_threshold_msat")) if member_dict.get("payout_threshold_msat") else int(0)
 
-        self._plugin = plugin
 
         self._datastore_key = ["prism", prism_db_version, "member", self.id]
 
@@ -339,6 +347,10 @@ class Prism:
                 except Exception as e:
                     self._plugin.log(f"Prism member keysend payment did not complete:  {e}", 'warn')
                     continue
+            elif m.destination == "":
+                # in this case, we don't have payment information, so we do nothing. The outlay will only 
+                # clear when a valid destination can be found.
+                self._plugin.log(f"Prism member destination was empty (member_id={m.id}). No payouts will occur for this member.", 'info')
             else:
                 raise Exception("ERROR: The destination was an invalid format. This should never happen!")
 
