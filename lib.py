@@ -46,7 +46,13 @@ class Member:
                 "Destination must be a valid lightning node pubkey or bolt12 offer.")
 
         if not isinstance(member["split"], float):
-            raise ValueError("Member 'split' must be an float (e.g., 2.0)")
+            try:
+                if 'split' in member and isinstance(member['split'], (int, float)):
+                    member['split'] = float(member['split'])
+            except Exception as e:
+                raise ValueError(f"Member 'split' must be an float (e.g., 2.0) {e}")
+
+        # TODO we should make the "split" value positive, yes?
 
         fees_incurred_by = member.get('fees_incurred_by', "remote")
         allowed_values_icb = ["local", "remote"]
@@ -90,7 +96,7 @@ class Member:
         self.id: str = member_dict.get("member_id") if member_dict.get("member_id") else hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
         self.description: str = member_dict.get("description")
         self.destination: str = member_dict.get("destination")
-        self.split: float = member_dict.get("split")
+        self.split: float = float(member_dict.get("split"))
         if self.split <= 0:
             raise Exception("The split MUST be a positive number (e.g., 2.0)")
         self.fees_incurred_by: str = member_dict.get(
