@@ -84,7 +84,7 @@ def test_general_prism(node_factory, bitcoind):
         {
             "description": "Drummer",
             "destination": l4_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
         },
         {
             "description": "Guitarist",
@@ -177,7 +177,7 @@ def test_splits(node_factory, bitcoind):
         {
             "description": "CEO",
             "destination": l2_offer["bolt12"],
-            "split": 5.0,
+            "split": 5,
         },
         {
             "description": "CTO",
@@ -254,7 +254,7 @@ def test_payment_threshold(node_factory, bitcoind):
         {
             "description": "Guitarist",
             "destination": l5_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
         },
     ]
     prism1_description = "prism1"
@@ -329,7 +329,7 @@ def test_update_outlay(node_factory, bitcoind):
         {
             "description": "Lead-Singer",
             "destination": l3_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
             "payout_threshold_msat": 500000,
         },
         {
