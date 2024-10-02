@@ -34,7 +34,7 @@ def init(options, configuration, plugin, **kwargs):
 
 
 @plugin.method("prism-create")
-def createprism(plugin, members, description: str = "", outlay_factor: float = 1.0, pay_to_self_enabled: bool = False):
+def createprism(plugin, members, description: str = "", outlay_factor: float = 1.0):
     '''Create a prism.'''
 
     if description == "":
@@ -117,7 +117,7 @@ def updateprism(plugin, prism_id, members):
         return e
 
 
-@plugin.method("prism-bindinglist")
+@plugin.method("prism-listbindings")
 def list_bindings(plugin, offer_id=None):
     '''Lists all prism bindings.'''
 
@@ -151,7 +151,7 @@ def list_bindings(plugin, offer_id=None):
 
 
 # adds a binding to the database.
-@plugin.method("prism-bindingadd")
+@plugin.method("prism-addbinding")
 def bindprism(plugin: Plugin, prism_id, offer_id=None):
     '''Binds a prism to a BOLT12 Offer.'''
 
@@ -199,7 +199,7 @@ def set_binding_member_outlay(plugin: Plugin, offer_id=None, member_id=None, new
 
     return prism_response
 
-@plugin.method("prism-bindingremove")
+@plugin.method("prism-deletebinding")
 def remove_prism_binding(plugin, offer_id=None):
     '''Removes a prism binding.'''
 
@@ -232,7 +232,7 @@ def delete_prism(plugin, prism_id):
     # prism should not have bindings
     if len(prism_to_delete.bindings) != 0:
         raise Exception(
-            f"This prism has existing bindings! Use prism-bindingremove [offer_id=] before attempting to delete prism '{prism_id}'.")
+            f"This prism has existing bindings! Use prism-deletebinding [offer_id=] before attempting to delete prism '{prism_id}'.")
     
     plugin.log(f"prism_to_delete {prism_to_delete}", "debug")
 
