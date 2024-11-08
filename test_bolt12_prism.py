@@ -40,7 +40,7 @@ def test_basic_test(node_factory):
     ]
     assert len(our_plugin) > 0
     assert l2.rpc.prism_list()
-    assert l2.rpc.prism_bindinglist()
+    assert l2.rpc.prism_listbindings()
     assert l2.rpc.plugin_stop(plugin_path)
 
 
@@ -84,7 +84,7 @@ def test_general_prism(node_factory, bitcoind):
         {
             "description": "Drummer",
             "destination": l4_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
         },
         {
             "description": "Guitarist",
@@ -116,10 +116,10 @@ def test_general_prism(node_factory, bitcoind):
 
     l2_offer = l2.rpc.offer("any", "Prism")
     l2.rpc.call(
-        "prism-bindingadd",
+        "prism-addbinding",
         {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
     )
-    binding = l2.rpc.call("prism-bindinglist")["bolt12_prism_bindings"][0]
+    binding = l2.rpc.call("prism-listbindings")["bolt12_prism_bindings"][0]
     assert binding["offer_id"] == l2_offer["offer_id"]
     assert binding["prism_id"] == prism1_id
 
@@ -135,8 +135,8 @@ def test_general_prism(node_factory, bitcoind):
         lambda: l5.rpc.listpeerchannels()["channels"][0]["to_us_msat"] > 600_000
     )
 
-    l2.rpc.call("prism-bindingremove", {"offer_id": l2_offer["offer_id"]})
-    assert len(l2.rpc.call("prism-bindinglist")["bolt12_prism_bindings"]) == 0
+    l2.rpc.call("prism-deletebinding", {"offer_id": l2_offer["offer_id"]})
+    assert len(l2.rpc.call("prism-listbindings")["bolt12_prism_bindings"]) == 0
 
     l2.rpc.call("prism-delete", {"prism_id": prism1_id})
     assert prism1_id not in [prism["prism_id"] for prism in l2.rpc.call("prism-list")["prisms"]] 
@@ -177,7 +177,7 @@ def test_splits(node_factory, bitcoind):
         {
             "description": "CEO",
             "destination": l2_offer["bolt12"],
-            "split": 5.0,
+            "split": 5,
         },
         {
             "description": "CTO",
@@ -254,7 +254,7 @@ def test_payment_threshold(node_factory, bitcoind):
         {
             "description": "Guitarist",
             "destination": l5_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
         },
     ]
     prism1_description = "prism1"
@@ -266,7 +266,7 @@ def test_payment_threshold(node_factory, bitcoind):
 
     l2_offer = l2.rpc.offer("any", "Prism")
     l2.rpc.call(
-        "prism-bindingadd",
+        "prism-addbinding",
         {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
     )
 
@@ -329,7 +329,7 @@ def test_update_outlay(node_factory, bitcoind):
         {
             "description": "Lead-Singer",
             "destination": l3_offer["bolt12"],
-            "split": 1.0,
+            "split": 1,
             "payout_threshold_msat": 500000,
         },
         {
@@ -353,7 +353,7 @@ def test_update_outlay(node_factory, bitcoind):
     # generate offer and bind to it
     l2_offer = l2.rpc.offer("any", "Prism")
     binding = l2.rpc.call(
-        "prism-bindingadd",
+        "prism-addbinding",
         {"offer_id": l2_offer["offer_id"], "prism_id": prism1_id},
     )
 
@@ -369,6 +369,6 @@ def test_update_outlay(node_factory, bitcoind):
 
     assert updated_binding["member_outlays"][0]["outlay_msat"] == new_outlay_msat, "Outlay not updated correctly"
 
-    sanity_check = l2.rpc.call("prism-bindinglist", {"offer_id": l2_offer["offer_id"]})["bolt12_prism_bindings"]
+    sanity_check = l2.rpc.call("prism-listbindings", {"offer_id": l2_offer["offer_id"]})["bolt12_prism_bindings"]
 
     assert sanity_check["member_outlays"][0]["outlay_msat"] == new_outlay_msat, "Outlay not updated in DB correctly"

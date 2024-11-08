@@ -18,7 +18,7 @@ This started as the winning hackathon project at [bitcoin++](https://btcpp.dev/)
 
 Other projects that compliment this one include:
 
-- [roygbiv.guide](https://roygbiv.guide) to learn more about prisms.
+- [roygbiv.guide](https://roygbiv.guide), a BOLT12-prism native [Value4Value](https://value4value.info/) website.
 - [lnplay](https://github.com/farscapian/lnplay) which integrates the prism plugin
 
 ## Getting Started
@@ -91,11 +91,14 @@ lightning-cli prism-create -k description="Band Prism" members="$MEMBERS_JSON" o
 
 Setting the `outlay_factor` to `0.75` means that total outlays will be only 75% of the incoming amount. This is an implicit "pay-to-self" of 25%. This feature allows a Prism member to host the prism.
 
-> An `outlay_factor` of `1.1` means total outlays will be 110% of incoming events. This can be used for things like "employer matching" or similar schemes.
+> An `outlay_factor` of `1.1` means total outlays will be 110% of incoming events. The extra 10% is paid by the prism host. This can be used for [matching funds](https://en.wikipedia.org/wiki/Matching_funds).
 
 Split percentages are normalized over all members of the prism. So, in the case above, each prism member will receive an equal split (i.e., 33.33%) of the total outlays.
 
-> Note that if `destination` is a node pubkey, [keysend](https://docs.corelightning.org/reference/lightning-keysend) is used for payouts instead of BOLT12.
+
+### Update a Prism
+
+There's a command called `prism-update` that takes a MEMBERS_JSON similar to `prism-create`. Note your members JSON MUST include `member_id` elements, which are provided when creating the prism for the first time.
 
 ### Delete a prism
 
@@ -152,7 +155,7 @@ Run the following command to view a prism policy. (Note that you can add a `pris
 
 When run, this RPC command will execute (i.e., pay-out) a prism. 
 
-> WARNING! prism-pay DOES NOT have an associated income event to account for payouts! Consider adding a binding so that fees can be tracked by maintaing a member outlay. Also, Prism payouts via `prism-pay` DO NOT respect the `payment_threshold` since this is only relevant to bindings. 
+> WARNING! prism-pay DOES NOT have an associated income event to account for payouts! Consider adding a binding so that fees can be tracked by maintaing a member outlay. Also, Prism payouts via `prism-pay` DOES NOT respect the `payout_threshold_msat` value  which is only relevant to bindings. 
 
 ```json
 {
@@ -199,7 +202,7 @@ Often you will want your prisms to be paid out whenever you have an incoming pay
 
 ### Create a binding
 
-`lightning-cli prism-bindingadd -k offer_id=70761889e73c049ce243b3ac73e06533830e4cdf8dbc3a5717b05bab93c7af64 prism_id=a59afe3927e6cdce218fb82415574204df4f762bb9c2c535a420488b3fa5fbf5`
+`lightning-cli prism-addbinding -k offer_id=70761889e73c049ce243b3ac73e06533830e4cdf8dbc3a5717b05bab93c7af64 prism_id=a59afe3927e6cdce218fb82415574204df4f762bb9c2c535a420488b3fa5fbf5`
 
 The above command binds a prism (`prism_id`) to a bolt12 offer with the specified `offer_id`.
 
@@ -247,9 +250,9 @@ The above command binds a prism (`prism_id`) to a bolt12 offer with the specifie
 
 ### List Prism Bindings
 
-Want to see your bindings? Run `prism-bindinglist`. Add an `offer_id` to view a specific binding.
+Want to see your bindings? Run `prism-listbindings`. Add an `offer_id` to view a specific binding.
 
-`lightning-cli -k prism-bindinglist -k offer_id=dfa361b51238e8ffc4c5db74105d618090e1c7fd48442d3e735dcaaf35347b6f`
+`lightning-cli -k prism-listbindings -k offer_id=dfa361b51238e8ffc4c5db74105d618090e1c7fd48442d3e735dcaaf35347b6f`
 
 ```json
 {
@@ -315,7 +318,9 @@ Note that since we're tracking outlays, if they actually owe us money, we can se
 
 ### Remove a binding
 
-You can remove a binding by running `prism-bindingremove offer_id`.
+You can remove a binding by running `prism-deletebinding offer_id`.
+
+
 
 ## How to contribute
 
